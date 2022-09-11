@@ -24,6 +24,7 @@
    :*line-number*
    :*length* 
    :*decoder*
+   :*consume-whitespace*
    :stw-read-char
    :next
    :stw-peek-next-char
@@ -32,7 +33,8 @@
    :match-character
    :read-until
    :read-and-decode
-   :consume-whitespace)
+   :consume-while
+   :whitespacep)
 
   (:import-from
    :stw.util

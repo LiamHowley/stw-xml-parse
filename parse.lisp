@@ -106,7 +106,8 @@ avoid trailing/malformed tags/text.")
 	  (*element-tags* (read-until (match-character #\< #\>)))
 	  (*end-sgml* (read-until (match-character #\>)))
 	  (*end-comment* (read-until (match-string "-->")))
-	  (*end-cdata* (read-until (match-string "]]>"))))
+	  (*end-cdata* (read-until (match-string "]]>")))
+	  (*consume-whitespace* (consume-while #'whitespacep)))
       (with-slots (file) document-node
 	(unless (slot-boundp document-node 'document)
 	  (setf (slot-value document-node 'document) (sequence-from-file file))))
@@ -266,7 +267,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
   (:method ((node document-node))
     ;; first skip newlines tabs etc.
-    (consume-whitespace)
+    *consume-whitespace*
     ;; now read
     (let ((char (stw-read-char)))
       (cond ((eq char (tag-open-char node))
@@ -523,10 +524,10 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-whitespace (node)
   (multiple-value-bind (start end)
-      (consume-whitespace)
+      *consume-whitespace*
     (when (and *preserve-whitespace*
 	       (> end start))
-      (let ((whitespace (make-displaced-array *document* start end)))
+      (let ((whitespace (subseq *document* start end)))
 	(bind-child-node node (make-instance 'whitespace-node :text whitespace))))))
 
 

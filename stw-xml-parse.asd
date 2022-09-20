@@ -10,4 +10,5 @@
 	       (:file "entities")
 	       (:file "model")
 	       (:file "parse")
-	       (:file "print")))
+	       (:file "print")
+	       (:file "query")))

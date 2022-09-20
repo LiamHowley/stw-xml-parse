@@ -37,6 +37,13 @@
 (defmethod (setf class->element) (element (class element-class))
   (error "element name must be a string"))
 
+(defmethod attribute->slot ((attribute string) (class element-class))
+  (with-slots (slot-index) class
+    (car (find-word attribute slot-index))))
+
+(defmethod attribute->slot (attribute (class element-class))
+  (error "attribute must be a string"))
+
 
 (defmethod validate-superclass
     ((class element-class)

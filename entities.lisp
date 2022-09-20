@@ -2287,6 +2287,13 @@
 (declaim (inline encode-char)
 	 (ftype (function (character) simple-string) encode-char))
 
+(defvar *special-chars*
+  '((#\< . "&lt;")
+    (#\> . "&gt;")
+    (#\& . "&amp;")
+    (#\" . "&quot;")
+    (#\' . "&#39;")))
+
 (defun encode-char (char)
   (declare (optimize (speed 3) (safety 0)))
   (let ((stream (make-string-output-stream)))
@@ -2304,19 +2311,3 @@
       (t
        (write-char char stream)))
     (the simple-string (get-output-stream-string stream))))
-;;
-;;
-;;(declaim (ftype (function (string) character) entity->character)
-;;	 (inline entity->character))
-;;
-;;(defun entity->character (entity)
-;;  (declare (optimize (safety 0) (speed 3)))
-;;  (gethash entity *entity-character-map*))
-;;
-;;
-;;(declaim (ftype (function (character) simple-array) character->entity)
-;;	 (inline character->entity))
-;;
-;;(defun character->entity (character)
-;;  (declare (optimize (safety 0) (speed 3)))
-;;  (encode-char character))

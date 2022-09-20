@@ -13,6 +13,7 @@
    :stw.util
    :sequence-from-file
    :ensure-list
+   :concat-string
    :aif
    :awhen
    :self)
@@ -24,6 +25,7 @@
    :*line-number*
    :*length* 
    :*decoder*
+   :*encoder*
    :*consume-whitespace*
    :stw-read-char
    :next
@@ -33,6 +35,8 @@
    :match-character
    :read-until
    :read-and-decode
+   :read-and-encode
+   :with-encoder
    :consume-while
    :whitespacep)
 
@@ -75,6 +79,8 @@
    :element-class
    :xml-direct-slot-definition
    :xml-effective-slot-definition
+   :element
+   :class->element
 
    ;; model
    :define-element-node
@@ -96,6 +102,7 @@
    :![CDATA[
    :!DOCTYPE
 
+   :the-content
    :closing-tag
 
    ;; functions

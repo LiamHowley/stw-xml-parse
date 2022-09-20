@@ -267,7 +267,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
   (:method ((node document-node))
     ;; first skip newlines tabs etc.
-    *consume-whitespace*
+    (funcall *consume-whitespace*)
     ;; now read
     (let ((char (stw-read-char)))
       (cond ((eq char (tag-open-char node))
@@ -504,27 +504,34 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 
-;;; read text-content and sub-elements
+;;; read non jvaluated content and sub-elements
 
 (defmethod read-content ((node sgml-node))
   (with-slots (the-content closing-tag) node
-    (setf the-content (funcall closing-tag))))
+    (setf the-content (string-downcase (funcall (read-until (match-string closing-tag)))))))
 
+(defmethod read-content ((node !--))
+  (with-slots (the-content) node
+    (setf the-content (funcall *end-comment*))))
+
+(defmethod read-content ((node ![CDATA[))
+  (with-slots (the-content) node
+    (setf the-content (funcall *end-cdata*))))
 
 (defmethod read-content ((node content-node))
   (with-slots (the-content closing-tag) node
     (next)
     (setf the-content (funcall closing-tag))))
 
-
 (defmethod read-content (node)
   (awhen (funcall *next-element*)
     (bind-child-node node (make-instance 'text-node :text self))))
 
 
+
 (defmethod read-whitespace (node)
   (multiple-value-bind (start end)
-      *consume-whitespace*
+      (funcall *consume-whitespace*)
     (when (and *preserve-whitespace*
 	       (> end start))
       (let ((whitespace (subseq *document* start end)))
@@ -586,11 +593,3 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (:method
       (file (object document-node) &key (if-does-not-exist :create) (if-exists :supersede))
     (sequence-to-file file (write-to-string object) if-exists if-does-not-exist)))
-
-
-(defgeneric serialize (object)
-  (:documentation "Print object to string")
-
-  (:method (object)
-    (declare (inline write-to-string))
-    (write-to-string object)))

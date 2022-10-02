@@ -99,6 +99,13 @@
    :text-node
    :whitespace-node
 
+   :parent-node
+   :child-nodes
+   :file
+   :document
+   :text
+   :the-content
+
    :sgml-node
    :?xml
    :!--
@@ -106,9 +113,10 @@
    :!DOCTYPE
 
    :the-content
-   :closing-tag
+   :closing-tag)
 
-   ;; functions
+   ;; reading/parsing functions
+  (:export
    :parse-document
    :read-element
    :read-element-name
@@ -125,15 +133,30 @@
    :get-element-name
    :map-attribute-to-slot
    :map-attribute
-   :tag-open-char
+   :tag-open-char)
+
+  ;; printing / writing
+  (:export
+   :*print-style*
    :serialize
    :write-to-file)
 
+  ;; conditions & restarts
+  (:export
+   :*mode*
+   :class-not-found-error
+   :slot-not-found-error
+   :assign-generic-node
+   :assign-slot-to-attribute
+   :ignore-missing-slot)
+
+  ;; query functions
   (:export
    :find-ancestor-node
    :clone-node
    :walk-tree
    :retrieve-text-nodes
+   :retrieve-text-nodes-from-parents
    :retrieve-text-nodes-with-token
    :retrieve-text-nodes-with-tokens
    :retrieve-text-nodes-with-all-tokens

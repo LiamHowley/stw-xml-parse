@@ -21,13 +21,12 @@
   (write-string (make-string num :initial-element #\space) stream))
 
 
-(defun serialize (object &optional indent)
-  (let ((s (make-string-output-stream))
-	(*encoder* #'(lambda (char)
+(defun serialize (object &optional indent (stream (make-string-output-stream)))
+  (let ((*encoder* #'(lambda (char)
 		       (cdr (assoc char *special-chars* :test #'char=))))
 	(*indent* indent))
-    (serialize-object object s)
-    (get-output-stream-string s)))
+    (serialize-object object stream)
+    (get-output-stream-string stream)))
 
 
 (defmethod serialize-object ((object document-node) (stream stream) &optional indent)

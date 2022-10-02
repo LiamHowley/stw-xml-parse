@@ -52,8 +52,8 @@
   t)
 
 (defmethod validate-superclass
-    ((superclass standard-class)
-     (class element-class))
+    ((class standard-class)
+     (superclass element-class))
   t)
 
 

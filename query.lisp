@@ -53,41 +53,6 @@
      (walk node nil))))
 
 
-(defgeneric attribute-value (node attribute)
-
-  (:documentation "For reading and writing attribute values. This is the canonical method
-to write attribute values as it also forces rerendering of node in document when printing.")
-
-  (:method
-       ((node element-node) (attribute string))
-      (declare (inline attribute->slot))
-      (let ((slot (attribute->slot attribute-name (class-of node))))
-	(when slot
-	  (let ((slot-name (slot-definition-name slot)))
-	    (when (slot-boundp node slot-name)
-	      (slot-value node slot-name)))))))
-
-
-(defmethod (setf attribute-value)
-   (value (node element-node) (attribute string))
-  (declare (inline attribute->slot))
-  (let ((slot (attribute->slot attribute-name (class-of node))))
-    (when slot
-      (let ((slot-name (slot-definition-name slot)))
-	(setf (slot-value node slot-name) value
-	      (slot-value node 'coordinates) nil)))))
-		       
-
-
-  ;; slot-not-found-error
-
-(defmethod ensure-string (value)
-  (ensure-string value))
-
-(defmethod ensure-string ((value string))
-  (make-displaced-array value 0 (array-total-size value)))
-
-
 (defgeneric get-elements-by-tagname (node tagname)
   (:documentation "Return all elements with the specified tagname")
   (:method

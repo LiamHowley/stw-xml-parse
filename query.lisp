@@ -246,6 +246,17 @@ must be a function that accepts one text-node as an argument.")
 			      t)))))))
 
 
+(defgeneric retrieve-text-nodes-from-parents (node &rest parents)
+  (:documentation "Return all text-nodes for node where the parent-node 
+is of a type specified in parents.")
+  (:method
+      (node &rest parents)
+    (retrieve-text-nodes node #'(lambda (node)
+				  (let ((parent (class-name (class-of (slot-value node 'parent-node)))))
+				    (member parent parents :test #'eq))))))
+
+
+
 (defgeneric retrieve-text-nodes-with-token (node token)
   (:documentation "Return all text nodes containing token.")
   (:method

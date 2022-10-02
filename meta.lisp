@@ -30,6 +30,7 @@
 		     :reader permitted-parent)))
 
 
+
 (defmethod (setf class->element) ((element string) (class element-class))
   (setf (slot-value class 'element) element
 	(gethash element *element-class-map*) (class-name class)))
@@ -61,29 +62,27 @@
   (with-slots (element slot-index accepted-case) class
     (setf slot-index (make-trie))
     (loop for slot in (filter-slots-by-type class 'xml-direct-slot-definition)
-       for attribute = (slot-value slot 'attribute)
-       when attribute
-       do (insert-word attribute
-		       slot-index
-		       (list slot
-			     (slot-definition-name slot)
-			     (slot-definition-type slot)
-			     attribute
-			     (length attribute))
-		       nil))
+	  for attribute = (slot-value slot 'attribute)
+	  when attribute
+	    do (insert-word attribute
+			    slot-index
+			    (list slot
+				  (slot-definition-name slot)
+				  (slot-definition-type slot)
+				  attribute
+				  (length attribute))
+			    nil))
     (when element
       (unless (stringp element)
-   	(error "the element ~s is not a string." element)))
+	(error "the element ~s is not a string." element)))
     (setf element (if element
 		      element
-		      (symbol-name (class-name class)))
-	  element (cond ((eq accepted-case :lower)
-			 (string-downcase element))
-			((eq accepted-case :upper)
-			 (string-upcase element))
-			(t element)))
-    ;; map element to class
-    (setf (gethash element *element-class-map*) class)))
+		      (let ((element (symbol-name (class-name class))))
+			(if (eq accepted-case :upper)
+			    (string-upcase element)
+			    (string-downcase element))))
+	  ;; map element to class
+	  (gethash element *element-class-map*) class)))
 
 
 

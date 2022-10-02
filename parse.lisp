@@ -287,7 +287,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       (#\!
        (get-element-name))
       (t
-       (let ((name (string-upcase name)))
+       (let ((name (string-downcase name)))
 	 (aif (gethash name *element-class-map*)
 	      (values self name)
 	      (values nil name)))))))

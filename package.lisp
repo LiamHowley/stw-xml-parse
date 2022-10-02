@@ -4,7 +4,7 @@
   (:use :cl)
 
   (:import-from
-   :stw.meta
+   :cl-comp
    :map-filtered-precedents
    :filter-slots-by-type
    :find-slot-definition)

@@ -147,7 +147,15 @@ interactions can be devised with method specialization.")
   (:method 
       ((parent-node document-node) (child-node dom-node))
     (push child-node (slot-value parent-node 'child-nodes))
-    (setf (slot-value child-node 'parent-node) parent-node)))
+    (setf (slot-value child-node 'parent-node) parent-node))
+
+  (:method 
+      ((parent-node branch-node) (child-node attribute-node))
+    (let ((child-name (class-name (class-of child-node))))
+      (when (slot-exists-p parent-node child-name)
+	(setf (slot-value parent-node child-name) child-node))
+      (call-next-method))))
+
 
 
 
@@ -394,6 +402,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	(type slot-type))
     (case char
       (#\=
+       (next)
        (read-attribute-value slot attribute slot-type))
       ((#\" #\')
        (next)

@@ -95,6 +95,7 @@
    :branch-node
    :leaf-node
    :content-node
+   :attribute-node
    :text-node
    :whitespace-node
 

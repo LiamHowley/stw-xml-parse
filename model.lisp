@@ -1,5 +1,11 @@
 (in-package xml.parse)
 
+(defvar *end-sgml*)
+
+(defvar *end-comment*)
+
+(defvar *end-cdata*)
+
 ;;; ELEMENT-CLASS slots map element attributes, and the ELEMENT-CLASS class name maps the
 ;;; element name. Thus slots have a type of STW-DIRECT-ATTRIBUTE-DEFINITION
 ;;; unless overridden.  This allows for convenient caching of slot
@@ -8,75 +14,74 @@
 ;;; DOM-NODE and its immediate descendants remain instances of STANDARD-CLASS,
 ;;; and the slots those of STANDARD-DIRECT-SLOT-DEFINITION. They are also cached.
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
+(defclass document-node ()
+  ((file :initarg :file
+	 :initform nil
+	 :accessor file)
+   (child-nodes :initarg :child-nodes
+		:initform nil
+		:type list
+		:accessor child-nodes)
+   (document :initarg :document
+	     :type simple-string
+	     :documentation "Document to be parsed."
+	     :accessor document))
+  (:documentation "For whole documents or document fragments, (e.g. template files)."))
 
-  (defvar *end-sgml*)
+(defclass xml-document-node (document-node)
+  ())
 
-  (defvar *end-comment*)
+(defclass dom-node ()
+  ((parent-node :initarg :parent-node
+		:initform nil
+		:accessor parent-node))
+  (:documentation "Element class for dom nodes."))
 
-  (defvar *end-cdata*)
+(defclass standard-element-node (dom-node)
+  ())
 
-  (defclass document-node ()
-    ((file :initarg :file
-	   :initform nil
-	   :accessor file)
-     (child-nodes :initarg :child-nodes
-		  :initform nil
-		  :type list
-		  :accessor child-nodes)
-     (document :initarg :document
-	       :type simple-string
-	       :documentation "Document to be parsed."
-	       :accessor document))
-    (:documentation "For whole documents or document fragments, (e.g. template files)."))
+(defclass element-node (standard-element-node)
+  ())
 
-  (defclass xml-document-node (document-node)
-    ())
+(defclass branch-node (element-node)
+  ((child-nodes :initarg :child-nodes
+		:initform nil
+		:type list
+		:accessor child-nodes))
+  (:documentation "Element that may contain child elements"))
 
-  (defclass dom-node ()
-    ((parent-node :initarg :parent-node
-		  :initform nil
-		  :accessor parent-node))
-    (:documentation "Element class for dom nodes."))
+(defclass leaf-node (element-node)
+  ()
+  (:documentation "Void element that contains only attributes and no content"))
 
-  (defclass standard-element-node (dom-node)
-    ())
+(defclass content-node (element-node)
+  ((the-content :initarg :the-content :initform nil :reader the-content)
+   (closing-tag :reader closing-tag
+		:initform (error "Closing tag requires value, as content-node elements are not evaluated")))
+  (:documentation "Element that has attributes, and whose only child is a string."))
 
-  (defclass element-node (standard-element-node)
-    ())
+(defclass attribute-node (branch-node)
+  ()
+  (:documentation "If the element being parsed is an attribute of another class, 
+setf the slot value of the relevant slot with the current node, and push to child-node
+of parent-node. Attribute nodes are also branch-nodes to allow them to be extended in 
+turn"))
 
-  (defclass branch-node (element-node)
-    ((child-nodes :initarg :child-nodes
-		  :initform nil
-		  :type list
-		  :accessor child-nodes))
-    (:documentation "Element that may contain child elements"))
+(defclass text-node (dom-node)
+  ((text :initarg :text
+	 :initform ""
+	 :type vector
+	 :reader text)))
 
-  (defclass leaf-node (element-node)
-    ()
-    (:documentation "Void element that contains only attributes and no content"))
+(defclass whitespace-node (text-node)
+  ((text :initarg :text
+	 :initform ""
+	 :type vector
+	 :reader text)))
 
-  (defclass content-node (element-node)
-    ((the-content :initarg :the-content :initform nil :reader the-content)
-     (closing-tag :reader closing-tag
-		  :initform (error "Closing tag requires value, as content-node elements are not evaluated")))
-    (:documentation "Element that has attributes, and whose only child is a string."))
-
-  (defclass text-node (dom-node)
-    ((text :initarg :text
-	   :initform ""
-	   :type vector
-	   :reader text)))
-
-  (defclass whitespace-node (text-node)
-    ((text :initarg :text
-	   :initform ""
-	   :type vector
-	   :reader text)))
-
-  (define-sgml-node sgml-node (standard-element-node)
-    ((the-content :initarg :the-content :reader the-content)
-     (closing-tag :initform ">"))))
+(define-sgml-node sgml-node (standard-element-node)
+  ((the-content :initarg :the-content :reader the-content)
+   (closing-tag :initform ">")))
 
 
 
@@ -119,8 +124,8 @@ to the list of supers."
       `(defclass ,name ,supers
 	 ,slots
 	 ,@class-slots
-	 ,@(unless (assoc :metaclass class-slots)
-	       `((:metaclass element-class)))))))
+	 ,(unless (assoc :metaclass class-slots)
+	    `(:metaclass element-class))))))
 
 
 

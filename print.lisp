@@ -3,6 +3,26 @@
 (defvar *indent* nil)
 
 
+;;; using print-object to draw the relevant data from attribute nodes
+
+(defmethod print-object ((node attribute-node) stream)
+  (let ((nodes (retrieve-text-nodes node)))
+    (loop
+      for node% in nodes
+      collect (print-object node% stream)
+      unless (eq node% (car (last nodes)))
+	collect (write-string " " stream))))
+
+(defmethod print-object ((node text-node) stream)
+  (let* ((*document* (text node))
+	 (*decoder* (get-decoder *document*))
+	 (*char-index* 0)
+	 (*length* (length *document*))
+	 (reader (read-and-decode)))
+    (princ (funcall reader) stream)))
+
+
+;;; serializing 
 
 (defmacro if-attribute-value (object slot &body body)
   "if attribute has value then ... Anaphora: slot-value is available for capture."
@@ -74,9 +94,10 @@
 
 
 (defmethod serialize-object :before ((object element-node) (stream stream) &optional indent)
-  (declare (ignore indent))
   (dolist (slot (filter-slots-by-type (class-of object) 'xml-direct-slot-definition))
-    (print-slot object slot (slot-definition-type slot) stream)))
+    (awhen (slot-value object (slot-definition-name slot))
+      (unless (typep self 'dom-node)
+	(print-slot object slot (slot-definition-type slot) stream)))))
 
 
 (defmethod print-slot (object slot-definition type stream)

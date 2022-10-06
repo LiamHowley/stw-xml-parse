@@ -87,19 +87,14 @@
 ;;; definition
 
 (defclass xml-direct-slot-definition (standard-direct-slot-definition)
-  ((package :initarg :package
-	    :initform :attribute
-	    :type string
-	    :documentation "for package names such xmlns."
-	    :reader print-packagep)
-   (attribute :initarg :attribute
+  ((attribute :initarg :attribute
 	      :initform nil
 	      :type string
 	      :documentation "find attribute given slot name"
 	      :reader slot-definition-attribute)
    (expected-value :initarg :expected-value
 		   :initform nil
-		   :type cons
+		   :type list
 		   :documentation "reference values to match against"
 		   :reader expected-value)
    (status :initform :active

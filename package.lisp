@@ -83,6 +83,7 @@
    :class->element
    :slot-index
    :attribute->slot
+   :slot-definition-attribute
 
    ;; model
    :define-element-node
@@ -98,6 +99,7 @@
    :attribute-node
    :text-node
    :whitespace-node
+   :generic-node
 
    :parent-node
    :child-nodes

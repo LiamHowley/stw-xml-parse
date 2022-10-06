@@ -135,7 +135,7 @@ to the list of supers."
   ((element-name :initform nil
 		 :type string
 		 :initarg :element-name
-		 :reader generic-class->element)
+		 :reader class->element)
    (attributes :initform (make-hash-table :test #'equal)
 	       :type hash-table
 	       :reader attributes))
@@ -146,9 +146,6 @@ element is self-closing. CHANGE-CLASS is invoked in order to dispatch correctly 
 
 (defclass generic-leaf-node (generic-node leaf-node)
   ())
-
-(defmethod class->element ((node generic-node))
-  (generic-class->element node))
 
 (defmethod class->element ((node standard-class))
   nil)

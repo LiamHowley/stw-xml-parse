@@ -2,6 +2,7 @@
 
 (defvar *indent* nil)
 
+(defvar *print-childnodes* t)
 
 ;;; using print-object to draw the relevant data from attribute nodes
 
@@ -11,7 +12,7 @@
       for node% in nodes
       collect (print-object node% stream)
       unless (eq node% (car (last nodes)))
-	collect (write-string " " stream))))
+	collect (write-char #\space stream))))
 
 (defmethod print-object ((node text-node) stream)
   (let* ((*document* (text node))
@@ -49,26 +50,34 @@
     (get-output-stream-string stream)))
 
 
-(defmethod serialize-object ((object document-node) (stream stream) &optional indent)
+(defgeneric serialize-object (object stream &optional indent include-children)
+  (:documentation "Print to object to string in xml format."))
+
+
+(defmethod serialize-object ((object document-node) (stream stream) &optional (indent *indent*) include-children)
+  (declare (ignore include-children))
   (loop
     for node in (slot-value object 'child-nodes)
-    do (serialize-object node stream 0)))
+    do (serialize-object node stream (when indent 0))))
 
 
-(defmethod serialize-object ((node dom-node) (stream stream) &optional indent)
+(defmethod serialize-object ((node dom-node) (stream stream) &optional indent (include-children *print-childnodes*))
+  (if include-children
+      (loop
+	for child in (slot-value node 'child-nodes)
+	do (serialize-object child stream (when indent (+ 3 indent))))
+      (write-string " ... " stream)))
+
+
+(defmethod serialize-object ((node generic-node) (stream stream) &optional indent include-children)
+  (declare (ignore include-children))
   (loop
     for child in (slot-value node 'child-nodes)
-    do (serialize-object child stream 0)))
+    do (serialize-object child stream (when indent (+ 3 indent)))))
 
 
-(defmethod serialize-object ((node generic-node) (stream stream) &optional indent)
-  (loop
-    for child in (slot-value node 'child-nodes)
-    do (serialize-object child stream indent)))
-
-
-(defmethod serialize-object ((object text-node) (stream stream) &optional indent)
-  (declare (ignore indent))
+(defmethod serialize-object ((object text-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
   (with-encoder
       (slot-value object 'text)
     *encoder*
@@ -77,23 +86,24 @@
       (princ (funcall reader) stream))))
 
 
-(defmethod serialize-object ((declaration ?xml) (stream stream) &optional indent)
-  (declare (ignore indent))
+(defmethod serialize-object ((declaration ?xml) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
   (with-slots (version encoding standalone) declaration
     (write-string "<?xml version='" stream)
     (write-string version stream)
     (when encoding
       (write-string " encoding='" stream)
       (write-string encoding stream)
-      (write-string "'" stream))
+      (write-char #\' stream))
     (when standalone
       (write-string " standalone='" stream)
       (write-string standalone stream)
-      (write-string "'"))
+      (write-char #\' stream))
     (write-string " ?>" stream)))
 
 
-(defmethod serialize-object :before ((object element-node) (stream stream) &optional indent)
+(defmethod serialize-object :before ((object element-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
   (dolist (slot (filter-slots-by-type (class-of object) 'xml-direct-slot-definition))
     (awhen (slot-value object (slot-definition-name slot))
       (unless (typep self 'dom-node)
@@ -107,62 +117,74 @@
       (call-next-method))))
 
 
-(defmethod serialize-object ((node sgml-node) (stream stream) &optional indent)
+(defmethod serialize-object ((node sgml-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
   (when *indent*
     (indent-string indent stream))
-  (write-string "<" stream)
+  (write-char #\< stream)
   (write-string (class->element (class-of node)) stream)
   (write-string (slot-value node 'the-content) stream)
   (write-string (slot-value node 'closing-tag) stream))
 
 
-(defun print-opening-tag (object stream indent)
+(defun print-opening-tag (element stream indent)
   (when *indent*
     (indent-string indent stream))
-  (write-string "<" stream)
-  (write-string (class->element object) stream))
+  (write-char #\< stream)
+  (write-string element stream))
 
-(defun print-closing-tag (object stream indent)
+(defun print-closing-tag (element stream indent)
   (when *indent*
     (indent-string indent stream))
   (write-string "</" stream)
-  (write-string (class->element object) stream)
-  (write-string ">" stream))
+  (write-string element stream)
+  (write-char #\> stream))
 
 
-
-(defmethod serialize-object :around ((object element-node) (stream stream) &optional indent)
-  (print-opening-tag (class-of object) stream indent)
+(defmethod serialize-object :around ((object element-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
+  (print-opening-tag (or (class->element (class-of object))
+			 (class->element object))
+		     stream indent)
   (call-next-method))
 
-(defmethod serialize-object :before ((object generic-node) (stream stream) &optional indent)
-  (with-encoder
-      (slot-value object 'attributes)
-    *encoder*
-    (let ((*decoder* (get-decoder *document*))
-	  (reader (read-and-encode)))
-      (maphash #'(lambda (attribute value)
+(defmethod serialize-object :before ((object generic-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
+  (maphash #'(lambda (attribute value)
+	       (with-encoder value
+		   *encoder*
+		 (let ((*decoder* (get-decoder *document*))
+		       (reader (read-and-encode)))
+		   (write-char #\space stream)
 		   (write-string attribute stream)
-		   (write-string "=" stream))
-	       (write-string (funcall reader) stream)))))
+		   (write-char #\= stream)
+		   (write-char #\' stream)
+		   (write-string (funcall reader) stream)
+		   (write-char #\' stream))))
+	   (slot-value object 'attributes)))
 
-(defmethod serialize-object :after ((object generic-node) (stream stream) &optional indent)
-  (print-closing-tag object stream indent))
+(defmethod serialize-object ((object generic-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
+  (call-next-method))
 
-(defmethod serialize-object ((object branch-node) (stream stream) &optional indent)
-  (write-string ">" stream)
-  (loop
-    for node in (slot-value object 'child-nodes)
-    do (serialize-object node stream (+ 3 indent))))
+(defmethod serialize-object ((object branch-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
+  (write-char #\> stream)
+  (call-next-method))
 
-(defmethod serialize-object :after ((object branch-node) (stream stream) &optional indent)
-  (print-closing-tag (class-of object) stream indent))
+(defmethod serialize-object :after ((object branch-node) (stream stream) &optional indent include-children)
+  (declare (ignore include-children))
+  (print-closing-tag (or (class->element (class-of object))
+			 (class->element object))
+		     stream indent))
 
-(defmethod serialize-object ((object leaf-node) (stream stream) &optional indent)
+(defmethod serialize-object ((object leaf-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
   (write-string " />" stream))
 
-(defmethod serialize-object ((object content-node) (stream stream) &optional indent)
-  (write-string ">" stream)
+(defmethod serialize-object ((object content-node) (stream stream) &optional indent include-children)
+  (declare (ignore indent include-children))
+  (write-char #\> stream)
   (let ((text (slot-value object 'the-content)))
     (when text
       (write-string text stream)))
@@ -175,7 +197,7 @@
 	 (ftype (function (xml-direct-slot-definition stream) string) print-attribute-handle))
 
 (defun print-attribute-handle (slot stream)
-  (write-string " " stream)
+  (write-char #\space stream)
   (write-string (slot-definition-attribute slot) stream)
   (write-string "='" stream))
       
@@ -189,14 +211,14 @@
 	   (reader (read-and-encode)))
        (print-attribute-handle slot stream)
        (write-string (funcall reader) stream)
-       (write-string "'" stream)))))
+       (write-char #\' stream)))))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'real)) (stream stream))
   (if-attribute-value
-   object slot
-   (print-attribute-handle slot stream)
-   (write-string (ensure-string slot-value) stream)
-   (write-string "'" stream)))
+      object slot
+    (print-attribute-handle slot stream)
+    (write-string (ensure-string slot-value) stream)
+    (write-char #\' stream)))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'array)) (stream stream))
   (if-attribute-value
@@ -208,7 +230,7 @@
 	   (reader (read-and-encode)))
        (print-attribute-handle slot stream)
        (write-string (funcall reader) stream)
-       (write-string "'" stream)))))
+       (write-char #\' stream)))))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'cons)) (stream stream))
   (if-attribute-value
@@ -220,7 +242,7 @@
 	   (reader (read-and-encode)))
        (print-attribute-handle slot stream)
        (write-string (funcall reader) stream)
-       (write-string "'" stream)))))
+       (write-char #\' stream)))))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'boolean)) (stream stream))
   (print-attribute-handle slot stream)
@@ -228,4 +250,4 @@
 		    "true"
 		    "false")
 		stream)
-  (write-string "'" stream))
+  (write-char #\' stream))

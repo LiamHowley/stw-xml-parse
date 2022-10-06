@@ -455,6 +455,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
        (next)
        (read-attribute-value slot attribute slot-type))
       ((#\" #\')
+       (next)
        (funcall (read-and-decode #'(lambda (test-char)
 				     (char= char test-char)))))
       (t
@@ -469,7 +470,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-attribute ((class generic-node))
   (let ((attribute (funcall *next-attribute*))
-	(slot (find-slot-definition (find-class 'generic-node) 'attributes)))
+	(slot (find-slot-definition (find-class 'generic-node) 'attributes 'standard-direct-slot-definition)))
     (assign-value class slot nil attribute (read-attribute-value slot attribute (slot-definition-type slot)))))
 
 
@@ -479,10 +480,10 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       (case char
 	((#\> nil)
 	 (return))
-	((#\" #\' #\newline #\space)
-	 (stw-read-char))
+	((#\" #\' #\newline #\space #\tab)
+	 (next))
 	(#\/ 
-	 (stw-read-char)
+	 (next)
 	 (throw 'self-closing t))
 	(t 
 	 (read-attribute node))))))
@@ -507,7 +508,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		   result
 		 (declare (fixnum length))
 		 (return (values slot slot-name slot-type (map-attribute slot-name attribute length))))
-	       (return (values nil nil nil attribute))))))
+	       (return)))))
 
 
 (defmethod map-attribute (result attribute length)
@@ -522,7 +523,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-content ((node sgml-node))
   (with-slots (the-content closing-tag) node
-    (setf the-content (string-downcase (funcall (read-until (match-string closing-tag)))))))
+    (setf the-content (string-downcase (funcall *end-sgml*)))))
 
 (defmethod read-content ((node !--))
   (with-slots (the-content) node

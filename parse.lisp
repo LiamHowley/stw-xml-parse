@@ -157,8 +157,6 @@ interactions can be devised with method specialization.")
       (call-next-method))))
 
 
-
-
 (defun parse% (fn node)
   (let* ((*char-index* 0)
 	 (*line-number* 1)
@@ -189,9 +187,6 @@ interactions can be devised with method specialization.")
 	  (name
 	   (restart-case
 	       (class-not-found-error "There is no class matching the element name ~a" name)
-	     (use-value (node)
-	       :report "Use a custom node."
-	       node)
 	     (assign-generic-node ()
 	       :report "Use GENERIC-NODE"
 	       (make-generic-node name))))
@@ -206,7 +201,6 @@ interactions can be devised with method specialization.")
 
 
 ;;; initialization
-
 
 (defmethod initialize-instance ((declaration ?xml) &key stw-reader)
   (when stw-reader
@@ -266,8 +260,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (:method
       :around (node)
     (handler-bind ((class-not-found-error
-		     #'(lambda (c)
-			 (take-action c (assign-generic-node)))))
+		     (take-action c (assign-generic-node))))
       (call-next-method)))
 
   (:method (node)
@@ -283,8 +276,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     (bind-child-node node (read-into-object)))
 	    ((eq :eof char) nil)
 	    (t
-	     (when (action-p)
-	       (funcall (action-p) "Invalid character at beginning of xml document"))
+	     (awhen (action-p)
+	       (funcall self "Invalid character at beginning of xml document"))
 	     nil)))))
 
 
@@ -330,8 +323,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 (defmethod read-subelements ((node branch-node))
-  (declare (inline action-p
-		   stw-read-char))
+  (declare (inline action-p stw-read-char))
   (loop
     for char = (stw-read-char)
     while char
@@ -384,7 +376,6 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     node))
 
 
-
 (defmethod read-into
     ((output (eql 'boolean)) predicate)
   (let ((value (funcall (read-and-decode #'(lambda (char)
@@ -421,8 +412,27 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 (defmethod read-attribute ((class element-node))
   (multiple-value-bind (slot slot-name slot-type attribute)
       (map-attribute-to-slot class)
-    (assign-value class slot slot-name attribute
-		  (read-attribute-value slot attribute slot-type))))
+    (if slot
+	(assign-value class slot slot-name attribute
+		      (read-attribute-value slot attribute slot-type))
+	(let ((start *char-index*)
+	      (attribute (funcall *attribute-name*)))
+	  (restart-case
+	      (slot-not-found-error "There are no slots representing the attribute ~a"
+				    attribute)
+	    (assign-slot-to-attribute (slot)
+	      :report "Use a different slot to permanently represent the attribute."
+	      :interactive (lambda () 
+			     (princ "Please specify a slot to use: ")
+			     (list (read)))
+	      (setf (slot-index attribute (class-of class))
+		    (find-slot-definition (class-of class) slot 'xml-direct-slot-definition)
+		    *char-index* start)
+	      (read-attribute class))
+	    (ignore-missing-slot ()
+	      :report "Ignore attribute."
+	      (funcall *skip-attribute*)
+	      nil))))))
 
 
 (defmethod read-element-attributes ((node element-node))
@@ -499,10 +509,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		   result
 		 (declare (fixnum length))
 		 (return (values slot slot-name slot-type (map-attribute slot-name attribute length))))
-	       (let ((attribute (funcall *next-attribute*)))
-		 (slot-not-found-error node attribute
-				       "There are no slots representing the attribute ~a"
-				       attribute))))))
+	       (return (values nil nil nil attribute))))))
 
 
 (defmethod map-attribute (result attribute length)

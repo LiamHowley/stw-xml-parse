@@ -19,7 +19,8 @@
 		  :reader accepted-case)
    (slot-index :type (or null trie)
 		:documentation "Trie that maps attribute names to slots."
-		:initform nil)
+	       :initform nil
+	       :reader slot-index)
    (permitted-content :initform nil
 		      :type list
 		      :initarg :permitted-content
@@ -64,14 +65,7 @@
     (loop for slot in (filter-slots-by-type class 'xml-direct-slot-definition)
 	  for attribute = (slot-value slot 'attribute)
 	  when attribute
-	    do (insert-word attribute
-			    slot-index
-			    (list slot
-				  (slot-definition-name slot)
-				  (slot-definition-type slot)
-				  attribute
-				  (length attribute))
-			    nil))
+	    do (setf (slot-index attribute class) slot))
     (when element
       (unless (stringp element)
 	(error "the element ~s is not a string." element)))
@@ -147,6 +141,18 @@
 	(setf attribute (string-downcase slot-name))
 	(unless (stringp attribute)
 	  (error "the attribute ~s is not a string." attribute))))))
+
+
+(defmethod (setf slot-index) ((slot xml-direct-slot-definition) (attribute string) (class element-class))
+  "Write for binding a slot to an attribute. Invoked when a slot-missing-error is handled."
+  (unless (slot-value slot 'attribute)
+    (setf (slot-value slot 'attribute) attribute))
+  (insert-word attribute (slot-index class)
+	       (list slot
+		     (slot-definition-name slot)
+		     (slot-definition-type slot)
+		     attribute
+		     (length attribute))))
 
 
 ;;; sgml-class

@@ -1,11 +1,5 @@
 (in-package xml.parse)
 
-(defvar *end-sgml*)
-
-(defvar *end-comment*)
-
-(defvar *end-cdata*)
-
 ;;; ELEMENT-CLASS slots map element attributes, and the ELEMENT-CLASS class name maps the
 ;;; element name. Thus slots have a type of STW-DIRECT-ATTRIBUTE-DEFINITION
 ;;; unless overridden.  This allows for convenient caching of slot
@@ -166,7 +160,7 @@ element is self-closing. CHANGE-CLASS is invoked in order to dispatch correctly 
 ;; sgml / comments / DTDS etc
 
 (define-sgml-node !-- (sgml-node)
-  ((closing-tag :initarg :closing-tag :initform "!--"))
+  ((closing-tag :initarg :closing-tag :initform "-->"))
   (:documentation "comment string"))
 
 

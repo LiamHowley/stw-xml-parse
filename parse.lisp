@@ -224,8 +224,6 @@ interactions can be devised with method specialization.")
   (when stw-reader
     (unless ignore-attributes
       (read-element-attributes node)))
-    ;;(when (char= (stw-read-char) #\>)
-    ;;  (next)))
   node)
 
 

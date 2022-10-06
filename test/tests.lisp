@@ -135,3 +135,26 @@
    </dob>
 </account>"
       (serialize *parsed-account* t)))
+
+
+(define-test reader...
+  :parent test-parse
+  (true (set-reader))
+  (let* ((document-node (read-from-string "<a href='/some-url'>url</a>"))
+	 (child-node (car (slot-value document-node 'child-nodes))))
+    (true (slot-exists-p child-node 'href))
+    (is string= "/some-url" (slot-value child-node 'href))
+    (is string= "url" (text (car (slot-value child-node 'child-nodes))))
+    (of-type 'readtable (remove-reader))))
+
+(define-test errors-and-generic-nodes...
+  :parent test-parse
+  (skip "to be done"
+    (setf *mode* :strict)
+    (fail (parse-document "<custom-node custom-slot='value'>a custom node</custom-node>") 'class-not-found-error)
+    (setf *mode* :silent)
+    (let* ((document-node (parse-document "<custom-node custom-slot='value'>a custom node</custom-node>"))
+	   (child-node (car (slot-value document-node 'child-nodes))))
+      (of-type 'generic-node child-node)
+      (is string= "a custom node" (text (car (retrieve-text-nodes-with-token document-node "a custom node"))))
+      (of-type 'generic-node (get-element-with-attribute document-node "custom-slot")))))

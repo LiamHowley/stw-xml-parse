@@ -1,4 +1,6 @@
 (defsystem #:stw-xml-parse
+  :author "Liam Howley <liam.howley@thespanningtreeweb.ie>"
+  :license "MIT"
   :depends-on ("closer-mop"
 	       "cl-comp"
 	       "stw-utils")
@@ -10,8 +12,9 @@
 	       (:file "entities")
 	       (:file "model")
 	       (:file "parse")
-	       (:file "query")
-	       (:file "print"))
+	       (:file "print")
+	       (:file "read")
+	       (:file "query"))
     :long-description
     #.(uiop:read-file-string
        (uiop:subpathname *load-pathname* "docs/README.org"))

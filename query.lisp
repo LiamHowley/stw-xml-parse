@@ -2,9 +2,17 @@
 
 
 (defgeneric clone-node (node)
+  (:documentation "Uses the read feature of STW-XML-PARSE to write and then read the 
+node back in, to create a unique copy of node")
+
   (:method
-       ((node dom-node))
-      (read-from-string (write-to-string node))))
+      ((node dom-node))
+    (cond ((readerp)
+	   (read-from-string (write-to-string node)))
+	  (t
+	   (set-reader #'read-html)
+	   (read-from-string (write-to-string node))
+	   (remove-reader)))))
 
 
 (defgeneric find-ancestor-node (node ancestor &optional limiting-node)

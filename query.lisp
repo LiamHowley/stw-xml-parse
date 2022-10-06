@@ -62,6 +62,14 @@ node back in, to create a unique copy of node")
      (walk node nil))))
 
 
+(defgeneric get-generic-nodes (node)
+  (:documentation "Return all generic nodes.")
+  (:method (node)
+    (query-select-all node
+		      #'(lambda (node)
+			  (typep node 'generic-node)))))
+
+
 (defgeneric get-elements-by-tagname (node tagname)
   (:documentation "Return all elements with the specified tagname")
   (:method
@@ -72,63 +80,57 @@ node back in, to create a unique copy of node")
 			      (typep node symbol))))))
 
 
-(defun all (values)
-  #'(lambda (node slot)
-      (let ((test-value (slot-value node (slot-definition-name slot))))
-	(typecase test-value
-	  (atom
-	   (member test-value values :test #'equal))
-	  (cons
-	   (loop for value in values
-		   always (member value test-value :test #'equal)))
-	  (array
-	   (loop for value in values
-		   always (loop for value% across test-value
-				 when (equal value value%)
-				   do (return t))))))))
-      
+(defmethod get-attribute-value ((node element-node) attribute)
+  (awhen (attribute->slot attribute (class-of node))
+    (let ((slot-name (slot-definition-name self)))
+      (when (slot-boundp node slot-name)
+	(slot-value node slot-name)))))
 
-(defun any (values)
-  #'(lambda (node slot)
-      (let ((test-value (slot-value node (slot-definition-name slot))))
-	(typecase test-value
-	  (atom
-	   (member test-value values :test #'equal))
-	  (cons
-	   (loop for value in values
-		   thereis (member value test-value :test #'equal)))
-	  (array
-	   (loop for value in values
-		   thereis (loop for value% across test-value
-				 when (equal value value%)
-				   do (return t))))))))
+(defmethod get-attribute-value ((node generic-node) attribute)
+  (gethash attribute (slot-value node 'attributes)))
+
+
+(defmacro test-attribute (fn test-fn)
+  `(defun ,fn (values)
+     #'(lambda (node attribute)
+	 (let ((test-value (get-attribute-value node attribute)))
+	   (typecase test-value
+	     (atom
+	      (member test-value values :test #'equal))
+	     (cons
+	      (loop for value in values
+		    ,test-fn (member value test-value :test #'equal)))
+	     (array
+	      (loop for value in values
+		    ,test-fn (loop for value% across test-value
+			      when (equal value value%)
+				do (return t)))))))))
+
+(test-attribute all always)
+
+(test-attribute any thereis)
 
 
 (defun attribute-valuep (name fn)
   #'(lambda (node)
       (when (typep node 'element-node)
-	(let ((slot (attribute->slot name (class-of node))))
-	  (when (and slot (slot-boundp node (slot-definition-name slot)))
-	    (funcall fn node slot))))))
+	(funcall fn node name))))
 
 
 (defun attributes-p (fn &rest attributes)
   "Requires a function that accepts a boolean, (e.g. every / some), 
-and returns a closure that accepts a element-node."
+and returns a closure that accepts an element-node."
   #'(lambda (node)
       (and (typep node 'element-node)
 	   (funcall fn #'(lambda (attribute)
-			   (let ((slot (attribute->slot attribute (class-of node))))
-			     (when slot
-			       (slot-boundp node (slot-definition-name slot)))))
+			   (get-attribute-value node attribute))
 		    attributes))))
 
 
 (defun attribute-p (name)
   #'(lambda (node)
       (and (typep node 'element-node)
-	   (let ((slot (attribute->slot name (class-of node))))
-	     (slot-boundp node (slot-definition-name slot))))))
+	   (get-attribute-value node name))))
 
 
 

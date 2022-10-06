@@ -1,8 +1,8 @@
 (in-package :cl-user)
 
 (defpackage xml.parse
+  (:nicknames :xml)
   (:use :cl)
-
   (:import-from
    :cl-comp
    :map-filtered-precedents
@@ -12,6 +12,7 @@
   (:import-from
    :stw.util
    :sequence-from-file
+   :parse-stream
    :ensure-list
    :concat-string
    :aif
@@ -27,6 +28,7 @@
    :*decoder*
    :*encoder*
    :*consume-whitespace*
+   :consume-until
    :stw-read-char
    :next
    :stw-peek-next-char
@@ -36,9 +38,7 @@
    :read-until
    :read-and-decode
    :read-and-encode
-   :with-encoder
-   :consume-while
-   :whitespacep)
+   :with-encoder)
 
   (:import-from
    :stw.util
@@ -140,8 +140,10 @@
   ;; printing / writing
   (:export
    :*print-style*
+   :*print-childnodes*
    :serialize
-   :write-to-file)
+   :write-to-file
+   :print-slot)
 
   ;; conditions & restarts
   (:export
@@ -157,6 +159,7 @@
    :find-ancestor-node
    :clone-node
    :walk-tree
+   :retrieve-comments
    :retrieve-text-nodes
    :retrieve-text-nodes-from-parents
    :retrieve-text-nodes-with-token
@@ -175,10 +178,16 @@
    :get-previous-sibling
    :query-select
    :query-select-all
-   :attribute-value
    :remove-node
    :add-node
    :insert-before
    :insert-after
+   :first-child
+   :last-child
    :first-of-type
-   :last-of-type))
+   :last-of-type)
+
+  (:export
+   :remove-reader
+   :set-reader
+   :read-xml))

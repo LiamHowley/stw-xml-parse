@@ -124,8 +124,8 @@ to the list of supers."
       `(defclass ,name ,supers
 	 ,slots
 	 ,@class-slots
-	 ,(unless (assoc :metaclass class-slots)
-	    `(:metaclass element-class))))))
+	 ,@(unless (assoc :metaclass class-slots)
+	    `((:metaclass element-class)))))))
 
 
 

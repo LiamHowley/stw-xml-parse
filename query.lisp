@@ -16,7 +16,7 @@ node back in, to create a unique copy of node")
 
 
 (defgeneric find-ancestor-node (node ancestor &optional limiting-node)
-  (:documentation "Traverse up through the document tree from node to find a specified ancestor. Returns ancestor node if found; otherwise nil.")
+  (:documentation "Traverse up through the document tree from node to find a specified ancestor. Returns ancestor node if found; otherwise nil. Both ancestor and limiting-node are types.")
 
   (:method
       ((node document-node) ancestor &optional limiting-node)
@@ -37,7 +37,8 @@ node back in, to create a unique copy of node")
 		  (t (find-ancestor-node parent-node ancestor))))))))
 
 
-(defun walk-tree (node predicate &key from-end)
+(defun walk-tree (node predicate &optional from-end)
+  "Recursively walk a trie. If predicate is matched collect the node. With optional from-end."
   (labels ((walk (node acc)
 	     (cond ((null node)
 		    acc)
@@ -227,7 +228,7 @@ query-select returns the first node that matches.")
 		 #'(lambda (node)
 		     (when (funcall predicate node)
 		       (return-from query-select node)))
-		 :from-end from-end)))
+		 from-end)))
 
 
 (defgeneric query-select-all (node predicate)
@@ -295,6 +296,7 @@ is of a type specified in parents.")
 
 
 (defgeneric remove-node (node)
+  (:documentation "Remove node from nodelist.")
   (:method
        (node)
       (with-slots (parent-node) node
@@ -304,6 +306,7 @@ is of a type specified in parents.")
 
 
 (defgeneric add-node (node parent-node)
+  (:documentation "Add node to nodelist.")
   (:method
        (node parent-node)
       (setf (slot-value parent-node 'child-nodes) (nconc (slot-value parent-node 'child-nodes) node)
@@ -312,6 +315,7 @@ is of a type specified in parents.")
 
 
 (defgeneric insert-before (node node-to-insert)
+  (:documentation "Insert node-to-insert before node in nodelist.")
   (:method
        (node node-to-insert)
       (with-slots (child-nodes) (slot-value node 'parent-node)
@@ -324,6 +328,7 @@ is of a type specified in parents.")
 
 
 (defgeneric insert-after (node node-to-insert)
+  (:documentation "Insert node-to-insert after node in nodelist.")
   (:method
        (node node-to-insert)
       (with-slots (child-nodes) (slot-value node 'parent-node)
@@ -336,27 +341,31 @@ is of a type specified in parents.")
 
 
 (defgeneric first-child (node)
+  (:documentation "Return first child in node.")
   (:method
        (node)
       (car (slot-value node 'child-nodes))))
 
 
 (defgeneric last-child (node)
+  (:documentation "Return last child in node.")
   (:method
        (node)
       (car (last (slot-value node 'child-nodes)))))
 
 
 (defgeneric last-of-type (node type)
+  (:documentation "Return last child of type in node.")
   (:method
        (node type)
       (walk-tree node
 		 #'(lambda (node)
 		     (typep node type))
-		 :from-end t)))
+		 t)))
 
 
 (defgeneric first-of-type (node type)
+  (:documentation "Return first child of type in node.")
   (:method
        (node type)
       (walk-tree node

@@ -1,15 +1,26 @@
 (in-package xml.parse)
 
-(defvar *element-name*)
+(defvar *element-name* (read-until (match-character #\> #\space #\/ #\!)))
 
-(defvar *next-attribute*)
+(defvar *attribute-name* (read-until (match-character #\= #\space)))
 
-(defvar *next-element*)
+(defvar *next-attribute* (read-until (match-character #\space #\= #\> #\/)))
 
-(defvar *element-tags*)
+(defvar *next-element* (read-and-decode (match-character #\<)))
+
+(defvar *element-tags* (read-until (match-character #\< #\>)))
+
+(defvar *end-sgml* (read-until (match-character #\>)))
+
+(defvar *end-comment* (read-until (match-string "-->")))
+
+(defvar *end-cdata* (read-until (match-string "]]>")))
+
+(defvar *skip-attribute* (consume-until (or (match-character #\space #\>)
+					    (match-string "/>"))))
 
 (defvar *preserve-whitespace* nil
-  "New line and indentation? t or nil. Don't set directly.")
+  "New line and indentation? Boolean. Don't set directly.")
 
 ;;; reader functions
 
@@ -84,43 +95,32 @@ that accepts a document node. Makes best effort to maintain coherence and
 avoid trailing/malformed tags/text.")
 
   (:method
-      ((document string) &key (parser #'read-element) preserve-whitespace (overwrite t))
-    (parse-document (make-instance 'document-node :document document)
+      ((document string) &key (parser #'read-element) preserve-whitespace)
+    (parse-document (make-instance 'xml-document-node :document document)
 		    :parser parser
-		    :overwrite overwrite
 		    :preserve-whitespace preserve-whitespace))
 
   (:method
-      ((file pathname) &key (parser #'read-element) preserve-whitespace (overwrite t))
-    (let ((seq (sequence-from-file file)))
-      (parse-document (make-instance 'xml-document-node :document seq :file file)
-		      :parser parser
-		      :overwrite overwrite
-		      :preserve-whitespace preserve-whitespace)))
+      ((file pathname) &key (parser #'read-element) preserve-whitespace)
+    (parse-document (make-instance 'xml-document-node :file file)
+		    :parser parser
+		    :preserve-whitespace preserve-whitespace))
 
   (:method
-      ((document-node xml-document-node) &key (parser #'read-element) preserve-whitespace (overwrite t))
-    (let ((*element-name* (read-until (match-character #\> #\space #\/ #\!)))
-	  (*next-attribute* (read-until (match-character #\space #\= #\> #\/)))
-	  (*next-element* (read-and-decode (match-character #\<)))
-	  (*element-tags* (read-until (match-character #\< #\>)))
-	  (*end-sgml* (read-until (match-character #\>)))
-	  (*end-comment* (read-until (match-string "-->")))
-	  (*end-cdata* (read-until (match-string "]]>")))
-	  (*consume-whitespace* (consume-while #'whitespacep)))
-      (with-slots (file) document-node
-	(unless (slot-boundp document-node 'document)
-	  (setf (slot-value document-node 'document) (sequence-from-file file))))
-      (call-next-method document-node
-			:parser parser
-			:preserve-whitespace preserve-whitespace
-			:overwrite overwrite)))
+      ((document-node xml-document-node) &key (parser #'read-element) preserve-whitespace)
+    (declare (ignore parser preserve-whitespace)
+	     (inline parse-stream))
+    (with-slots (file) document-node
+      (unless (slot-boundp document-node 'document)
+	(setf (slot-value document-node 'document) 
+	      (with-open-file (in file :direction :input)
+		(with-output-to-string (out)
+		  (parse-stream in out)))))
+      (call-next-method)))
 
   (:method
-      ((document document-node) &key (parser #'read-element) preserve-whitespace (overwrite t))
+      ((document document-node) &key (parser #'read-element) preserve-whitespace)
     (declare (inline parse%))
-    (when overwrite
-      (setf (slot-value document 'child-nodes) nil))
     (let ((*preserve-whitespace* preserve-whitespace))
       (parse% parser document))))
 

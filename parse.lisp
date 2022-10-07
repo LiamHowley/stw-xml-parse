@@ -596,15 +596,3 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod parse-value ((output (eql 'keyword)) (value string))
   (the keyword (intern value 'keyword)))
-
-
-
-(defgeneric write-to-file (file object &key)
-
-  (:method
-      (file (object string) &key (if-does-not-exist :create) (if-exists :supersede))
-    (sequence-to-file file object if-exists if-does-not-exist))
-
-  (:method
-      (file (object document-node) &key (if-does-not-exist :create) (if-exists :supersede))
-    (sequence-to-file file (write-to-string object) if-exists if-does-not-exist)))

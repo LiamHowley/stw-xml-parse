@@ -12,6 +12,7 @@
   (:import-from
    :stw.util
    :sequence-from-file
+   :sequence-to-file
    :parse-stream
    :ensure-list
    :concat-string

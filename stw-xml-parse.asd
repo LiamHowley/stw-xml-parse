@@ -4,7 +4,7 @@
   :depends-on ("closer-mop"
 	       "cl-comp"
 	       "stw-utils")
-  :description "An XML to DOM tree parser, evaluating elements and attributes into CLOS objects."
+  :description "An XML to DOM style parser; parsing elements and attributes into CLOS objects."
   :serial t
   :components ((:file "package")
 	       (:file "meta")
@@ -12,8 +12,8 @@
 	       (:file "entities")
 	       (:file "model")
 	       (:file "parse")
-	       (:file "print")
 	       (:file "read")
+	       (:file "print")
 	       (:file "query"))
     :long-description
     #.(uiop:read-file-string

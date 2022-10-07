@@ -4,7 +4,15 @@
 
 (defvar *print-childnodes* t)
 
-;;; using print-object to draw the relevant data from attribute nodes
+
+(defmethod print-object ((object document-node) stream)
+  ;; use get-macro-character as a predicate for
+  ;; how to print.
+  (if (get-macro-character #\<)
+      (let ((*encoder* #'(lambda (char)
+			   (cdr (assoc char *special-chars* :test #'char=)))))
+	(serialize-object object stream))
+      (call-next-method)))
 
 (defmethod print-object ((node attribute-node) stream)
   (let ((nodes (retrieve-text-nodes node)))
@@ -42,7 +50,7 @@
   (write-string (make-string num :initial-element #\space) stream))
 
 
-(defun serialize (object &optional indent (stream (make-string-output-stream)))
+(defun serialize (object &optional (indent *indent*) (stream (make-string-output-stream)))
   (let ((*encoder* #'(lambda (char)
 		       (cdr (assoc char *special-chars* :test #'char=))))
 	(*indent* indent))
@@ -183,12 +191,12 @@
   (write-string " />" stream))
 
 (defmethod serialize-object ((object content-node) (stream stream) &optional indent include-children)
-  (declare (ignore indent include-children))
+  (declare (ignore include-children))
   (write-char #\> stream)
   (let ((text (slot-value object 'the-content)))
     (when text
       (write-string text stream)))
-  (print-closing-tag (class-of object) stream indent))
+  (print-closing-tag (class->element (class-of object)) stream indent))
 
 
 ;;print attributes
@@ -251,3 +259,18 @@
 		    "false")
 		stream)
   (write-char #\' stream))
+
+
+
+(defgeneric write-to-file (file object &key)
+
+  (:method
+      (file (object string) &key (if-does-not-exist :create) (if-exists :supersede))
+    (sequence-to-file file object if-exists if-does-not-exist))
+
+  (:method
+      (file (object document-node) &key (if-does-not-exist :create) (if-exists :supersede))
+    (sequence-to-file file (if (readerp)
+			       (write-to-string object)
+			       (serialize object))
+		      if-exists if-does-not-exist)))

@@ -46,7 +46,7 @@ Content Nodes have content that is read but not evaluated, (e.g. the <script> or
 
 *** Text Nodes and Whitespace Nodes
 
-Text nodes are decoded during parsing and encoded during printing. The option of whether to store whitespace is proferred, with the boolean ~*PRESERVE-WHITESPACE*~.
+Text nodes are decoded during parsing and encoded during printing. The option of whether to store whitespace is proferred, with the boolean *PRESERVE-WHITESPACE*.
 
 *** SGML Nodes
 
@@ -70,34 +70,34 @@ To define a node use the macro DEFINE-ELEMENT-NODE, which returns an instance of
 
 *** Class Slots
 
-**** Element Class
+**** element-class
 
-The metaclass ELEMENT-CLASS provides a number of slots that apply, or can be applied, to a node. First and foremost, the slot ELEMENT which with the reader CLASS->ELEMENT maps the class to an element. Conversely, elements are mapped to classes in the hash table ~*ELEMENT-CLASS-MAP*~.
+The metaclass ELEMENT-CLASS provides a number of slots that apply, or can be applied, to a node. First and foremost, the slot ELEMENT which with the reader CLASS->ELEMENT maps the class to an element. Conversely, elements are mapped to classes in the hash table *ELEMENT-CLASS-MAP*.
 
-**** Accepted Case
+**** accepted-case
 
 As xml elements are case sensitive, the slot ACCEPTED-CASE is provided, and accepts :upper, :lower and :any keywords, (default :ANY).
 
-**** Slot Index
+**** slot-index
 
 All attributes are indexed in a stateful character based trie, imported from stw-utils. The reader attribute->slot will return the slot, however, for expedience and performance, a list of slot, slot name, slot type, the attribute, and length of attribute name, are all stored and returned from a positive search of the SLOT-INDEX trie.
 
-**** Permitted Content and Permitted Parents
+**** permitted-content and permitted-parents
 
 Both the slots PERMITTED-CONTENT and PERMITTED-PARENTS are provided as a means to tie strict conformance rules to an XML document parser/printer, and to provide the necessary data to produce a DTD. However, at present, neither the parser nor the printer enforce these rules.
 
 
 *** XML-DIRECT-SLOT-DEFINITION Slots
 
-**** Attribute
+**** attribute
 
 Use the :attribute initarg to specify the attribute a slot maps. A string, it can therefore represent the case, package or entirely unrelated name, thus avoiding conflicts with Common Lisp symbols, amongst other things. If an attribute is not assiged, the name of the slot is parsed and the accepted-case determined. The resulting attribute name is stored in the class slot SLOT-INDEX for quick retrieval.
 
-**** Expected Value
+**** expected-value
 
 The initarg :expected-value allows the specification of accepted results. Useful for conformance checking and DTD formation.
 
-**** Status
+**** status
 
 Catch or flag deprecated or obsolete elements. A keyword, it defaults to :active. Useful, once again, for conformance, or for document upgrading.
 
@@ -147,7 +147,7 @@ Two conditions are provided:
 
 *** CLASS-NOT-FOUND-ERROR
 
-When there is no class associated with an element the error CLASS-NOT-FOUND-ERROR is invoked. The options then are to enter the debugger or bind the error to the restart ASSIGN-GENERIC-NODE, which as it's name suggests will create a node of type GENERIC-NODE. When ~*MODE*~ is :SILENT or :VERBOSE this process is automatically handled, albeit in the latter case with a warning printed to *STANDARD-OUTPUT*.
+When there is no class associated with an element the error CLASS-NOT-FOUND-ERROR is invoked. The options then are to enter the debugger or bind the error to the restart ASSIGN-GENERIC-NODE, which as it's name suggests will create a node of type GENERIC-NODE. When *MODE* is :SILENT or :VERBOSE this process is automatically handled, albeit in the latter case with a warning printed to *STANDARD-OUTPUT*.
 
 *** SLOT-NOT-FOUND-ERROR
 
@@ -166,7 +166,7 @@ An interactive restart. Provide the slot definition name for an existing slot in
 
 Alongside standard parsing, invoking the function ~(set-reader)~ will create an altered READTABLE and bind it to the global variable *READTABLE*. SET-READER has an optional READER argument, a function, (default #'READ-XML), which is bound to the character #\<.
 
-When ~(get-macro-character #\<)~ returns true, print-object calls the method serialize-object, thus printing an xml representation of a class and its children. By default the boolean ~*PRINT-CHILDNODES*~ => T. By setting it to nil, the representation is truncated.
+When ~(get-macro-character #\<)~ returns true, print-object calls the method serialize-object, thus printing an xml representation of a class and its children. By default the boolean *PRINT-CHILDNODES* => T. By setting it to nil, the representation is truncated.
 
 Now when inspecting ~<a href='/some-url'>url</a>~ we see:
 
@@ -192,7 +192,7 @@ Similarly:
  => <a href='/some-url'>url</a>
 #+END_SRC
 
-To close the reader and return to the initial ~*READTABLE*~ call ~(remove-reader)~. 
+To close the reader and return to the initial *READTABLE* call ~(remove-reader)~. 
 
 #+BEGIN_SRC lisp
 (make-instance 'a :href "/some-url" :child-nodes (make-instance 'text-node :text "url"))

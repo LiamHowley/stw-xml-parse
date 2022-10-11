@@ -14,6 +14,15 @@
 	(serialize-object object stream))
       (call-next-method)))
 
+(defmethod print-object ((object dom-node) stream)
+  ;; use get-macro-character as a predicate for
+  ;; how to print.
+  (if (get-macro-character #\<)
+      (let ((*encoder* #'(lambda (char)
+			   (cdr (assoc char *special-chars* :test #'char=)))))
+	(serialize-object object stream))
+      (call-next-method)))
+
 (defmethod print-object ((node attribute-node) stream)
   (let ((nodes (retrieve-text-nodes node)))
     (loop

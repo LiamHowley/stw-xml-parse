@@ -113,14 +113,19 @@ to the list of supers."
 			      (setf slot (ensure-list slot))
 			      (set-attr :type 'simple-string)
 			      (set-attr :initarg (intern (string-upcase (symbol-name (car slot))) 'keyword))
+			      (set-attr :reader (car slot))
 			      slot)
 			  instance-slots)))
-      `(defclass ,name ,supers
-	 ,slots
-	 ,@class-slots
-	 ,@(unless (assoc :metaclass class-slots)
-	    `((:metaclass element-class)))))))
-
+      `(progn
+	 (defclass ,name ,supers
+	   ,slots
+	   ,@class-slots
+	   ,@(unless (assoc :metaclass class-slots)
+	       `((:metaclass element-class))))
+	 (export ',name)
+	 ,@(loop
+	     for slot in slots
+	     collect `(export ',(car slot)))))))
 
 
 ;;;; generic nodes

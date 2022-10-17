@@ -64,6 +64,9 @@
 
   (:export
 
+   ;;util
+   :defclass-with-initargs
+
    ;; specials
    :*element-class-map*
    :*element-class-trie*

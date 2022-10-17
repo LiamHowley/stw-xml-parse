@@ -7,6 +7,7 @@
   :description "An XML to DOM style parser; parsing elements and attributes into CLOS objects."
   :serial t
   :components ((:file "package")
+	       (:file "util")
 	       (:file "meta")
 	       (:file "condition")
 	       (:file "entities")

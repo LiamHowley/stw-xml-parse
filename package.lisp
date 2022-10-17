@@ -89,6 +89,9 @@
    :attribute->slot
    :slot-definition-attribute
 
+   ;; type
+   :multiple-attributes
+
    ;; model
    :define-element-node
    :define-sgml-node
@@ -135,6 +138,7 @@
    :bind-child-node
    :prepare-slot
    :assign-value
+   :assign-slot-value
    :parse-value
    :get-element-name
    :map-attribute-to-slot

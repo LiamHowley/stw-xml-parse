@@ -88,7 +88,6 @@ in which multiple values are stored"))
 
 (defgeneric get-element-name ())
 
-
 (defgeneric parse-document (document &key)
   (:documentation "Requires a document node and an optional parsing function 
 that accepts a document node. Makes best effort to maintain coherence and 
@@ -401,11 +400,19 @@ differently to HTML and wildly so to JSON and other serialization formats.")
        (error "xml attributes missing quotes")))))
 
 
+
+(defgeneric assign-slot-value (class slot attribute value)
+  (:documentation "For slots with multiple attributes, such as data-*, events-* etc.")
+
+  (:method ((class element-node) slot attribute value)
+    (declare (ignore attribute)
+	     (optimize (safety 0) (speed 3)))
+    (setf (slot-value class slot) value)))
+
 (defmethod assign-value
     ((class element-node) (slot xml-direct-slot-definition) slot-name attribute value)
   (declare (ignore attribute))
   (setf (slot-value class slot-name) value))
-
 
 (defmethod read-attribute ((class element-node))
   (multiple-value-bind (slot slot-name slot-type attribute)
@@ -572,6 +579,9 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod parse-value (output value)
   value)
+
+(defmethod parse-value ((output (eql 'simple-string)) (value number))
+  (the simple-string (write-to-string value)))
 
 (defmethod parse-value (output (value string))
   (the string value))

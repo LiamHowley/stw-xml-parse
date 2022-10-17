@@ -80,9 +80,13 @@
 
 
 
+(defvar *element-class-map* (make-hash-table :test #'equal))
+
 ;; attributes
 
-(defvar *element-class-map* (make-hash-table :test #'equal))
+(deftype multiple-attributes ()
+  "Type for slots that contain more than one potential attribute."
+  '(or null cons))
 
 ;;; definition
 

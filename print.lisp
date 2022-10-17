@@ -270,6 +270,16 @@
   (write-char #\' stream))
 
 
+(defmethod print-slot ((object dom-node) slot (type (eql 'multiple-attributes)) (stream stream))
+  (loop
+    for (attribute . value) in (slot-value object (slot-definition-name slot))
+    do (write-string " " stream)
+    do (write-string (string-downcase attribute) stream)
+    do (write-string "='" stream)
+    do (write-string value stream)
+    do (write-string "'" stream)))
+  
+
 
 (defgeneric write-to-file (file object &key)
 

@@ -150,6 +150,7 @@
    :*print-style*
    :*print-childnodes*
    :serialize
+   :serialize-object
    :write-to-file
    :print-slot)
 

@@ -68,7 +68,7 @@
 
 
 (defgeneric serialize-object (object stream &optional indent include-children)
-  (:documentation "Print to object to string in xml format."))
+  (:documentation "Print object to stream in xml format."))
 
 
 (defmethod serialize-object ((object document-node) (stream stream) &optional (indent *indent*) include-children)
@@ -159,7 +159,7 @@
 
 
 (defmethod serialize-object :around ((object element-node) (stream stream) &optional indent include-children)
-  (declare (ignore indent include-children))
+  (declare (ignore include-children))
   (print-opening-tag (or (class->element (class-of object))
 			 (class->element object))
 		     stream indent)

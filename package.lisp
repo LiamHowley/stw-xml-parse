@@ -199,4 +199,5 @@
   (:export
    :remove-reader
    :set-reader
+   :readerp
    :read-xml))

@@ -70,11 +70,12 @@ node back in, to create a unique copy of node")
 			  (typep node 'generic-node)))))
 
 
-(defgeneric get-elements-by-tagname (node tagname)
+(defgeneric get-elements-by-tagname (node tagname &optional element-class-map)
   (:documentation "Return all elements with the specified tagname")
+
   (:method
-       (node tagname)
-      (let ((symbol (gethash tagname *element-class-map*)))
+       (node tagname &optional (element-class-map *element-class-map*))
+      (let ((symbol (gethash tagname element-class-map)))
 	(query-select-all node
 			  #'(lambda (node)
 			      (typep node symbol))))))

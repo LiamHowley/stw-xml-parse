@@ -139,6 +139,8 @@
 
 (define-test reader...
   :parent test-parse
+  (when (readerp)
+    (remove-reader))
   (true (set-reader))
   (let* ((document-node (read-from-string "<a href='/some-url'>url</a>"))
 	 (child-node (car (slot-value document-node 'child-nodes))))

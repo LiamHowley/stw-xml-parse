@@ -241,7 +241,7 @@
   (if-attribute-value
    object slot
    (with-encoder
-       (concat-string slot-value)
+       (concat-string slot-value t)
      *encoder*
      (let ((*decoder* (get-decoder *document*))
 	   (reader (read-and-encode)))
@@ -253,7 +253,7 @@
   (if-attribute-value
    object slot
    (with-encoder
-       (concat-string slot-value)
+       (concat-string slot-value t)
      *encoder*
      (let ((*decoder* (get-decoder *document*))
 	   (reader (read-and-encode)))

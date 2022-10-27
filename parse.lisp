@@ -16,8 +16,7 @@
 
 (defvar *end-cdata* (read-until (match-string "]]>")))
 
-(defvar *skip-attribute* (consume-until (or (match-character #\space #\>)
-					    (match-string "/>"))))
+(defvar *skip-attribute* (consume-until (match-character #\space #\>)))
 
 (defvar *preserve-whitespace* nil
   "New line and indentation? Boolean. Don't set directly.")

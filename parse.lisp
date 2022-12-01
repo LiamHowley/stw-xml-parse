@@ -2,7 +2,7 @@
 
 (defvar *element-name* (read-until (match-character #\> #\space #\/ #\!)))
 
-(defvar *attribute-name* (read-until (match-character #\= #\space)))
+(defvar *attribute-name* (read-until (match-character #\= #\space #\>)))
 
 (defvar *next-attribute* (read-until (match-character #\space #\= #\> #\/)))
 

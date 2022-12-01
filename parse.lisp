@@ -227,7 +227,8 @@ interactions can be devised with method specialization.")
 
 (defmethod initialize-instance :after ((node branch-node) &key stw-reader)
   (when stw-reader
-    (read-subelements node))
+    (unless (char= (stw-peek-last-char) #\/)
+      (read-subelements node)))
   node)
 
 

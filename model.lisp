@@ -116,16 +116,11 @@ to the list of supers."
 			      (set-attr :reader (car slot))
 			      slot)
 			  instance-slots)))
-      `(progn
-	 (defclass ,name ,supers
+	 `(defclass ,name ,supers
 	   ,slots
 	   ,@class-slots
 	   ,@(unless (assoc :metaclass class-slots)
-	       `((:metaclass element-class))))
-	 (export ',name)
-	 ,@(loop
-	     for slot in slots
-	     collect `(export ',(car slot)))))))
+	       `((:metaclass element-class)))))))
 
 
 ;;;; generic nodes

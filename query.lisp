@@ -74,11 +74,13 @@ node back in, to create a unique copy of node")
   (:documentation "Return all elements with the specified tagname")
 
   (:method
-       (node tagname &optional (element-class-map *element-class-map*))
-      (let ((symbol (gethash tagname element-class-map)))
-	(query-select-all node
-			  #'(lambda (node)
-			      (typep node symbol))))))
+      (node tagname &optional (element-class-map *element-class-map*))
+    (let ((symbol (gethash tagname element-class-map)))
+      (query-select-all node
+			#'(lambda (node)
+			    (or (typep node symbol)
+				(and (typep node 'generic-node)
+				     (string-equal tagname (class->element node)))))))))
 
 
 (defmethod get-attribute-value ((node element-node) attribute)

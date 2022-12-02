@@ -14,3 +14,8 @@
 		      slot)
 		  (cadr parts)))
     `(defclass ,name ,@parts)))
+
+
+(defun make-reader (sym)
+  (let ((package (stw.util:find-and-replace (package-name *package*) '((#\. . #\-)))))
+    (intern (concatenate 'string package "-" (symbol-name sym)) *package*)))

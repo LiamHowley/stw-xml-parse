@@ -109,18 +109,25 @@ to the list of supers."
 			 (nconc supers (list 'branch-node)))))
 	   (instance-slots (cadr parts))
 	   (class-slots (cddr parts))
+	   (readers (make-hash-table :test #'eq))
 	   (slots (mapcar #'(lambda (slot)
 			      (setf slot (ensure-list slot))
 			      (set-attr :type 'simple-string)
 			      (set-attr :initarg (intern (string-upcase (symbol-name (car slot))) 'keyword))
-			      (set-attr :reader (car slot))
+			      (let ((reader (make-reader (car slot))))
+				(setf (gethash reader readers) nil)
+				(set-attr :reader reader))
 			      slot)
 			  instance-slots)))
-	 `(defclass ,name ,supers
+      `(progn
+	 (defclass ,name ,supers
 	   ,slots
 	   ,@class-slots
 	   ,@(unless (assoc :metaclass class-slots)
-	       `((:metaclass element-class)))))))
+	       `((:metaclass element-class))))
+	 ,@(loop for k being each hash-key of readers
+		 collect `(export ',k))))))
+
 
 
 ;;;; generic nodes

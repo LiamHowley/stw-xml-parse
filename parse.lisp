@@ -47,11 +47,16 @@ designated by predicate and specialised output on (EQL <type>).")
     (parse-value output (funcall (read-and-decode predicate))))
 
   (:method
+      ((output (eql 'list)) predicate)
+    (read-into 'cons predicate))
+  
+  (:method
       ((output (eql 'cons)) predicate)
     (let ((list)
-	  (reader (read-and-decode #'(lambda (char)
-				       (or (funcall predicate char)
-					   (char= char #\space))))))
+	  (reader (read-and-decode
+		   #'(lambda (char)
+		       (or (funcall predicate char)
+			   (char= char #\space))))))
       (loop
 	(multiple-value-bind (token char)
 	    (funcall reader)
@@ -581,6 +586,12 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod parse-value (output (value string))
   (the string value))
+
+(defmethod parse-value ((output (eql 'real)) (value string))
+  (the fixnum (parse-integer value :junk-allowed t)))
+
+(defmethod parse-value ((output (eql 'integer)) (value string))
+  (the fixnum (parse-integer value :junk-allowed t)))
 
 (defmethod parse-value ((output (eql 'fixnum)) (value string))
   (the fixnum (parse-integer value :junk-allowed t)))

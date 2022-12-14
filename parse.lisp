@@ -405,14 +405,14 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (:documentation "For slots with multiple attributes, such as data-*, events-* etc.")
 
   (:method ((class element-node) slot attribute value)
-    (declare (ignore attribute)
-	     (optimize (safety 0) (speed 3)))
+    (declare (ignore attribute))
     (setf (slot-value class slot) value)))
 
 (defmethod assign-value
     ((class element-node) (slot xml-direct-slot-definition) slot-name attribute value)
-  (declare (ignore attribute))
+  (declare (ignore attribute slot))
   (setf (slot-value class slot-name) value))
+
 
 (defmethod read-attribute ((class element-node))
   (multiple-value-bind (slot slot-name slot-type attribute)

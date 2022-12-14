@@ -109,14 +109,17 @@ to the list of supers."
 			 (nconc supers (list 'branch-node)))))
 	   (instance-slots (cadr parts))
 	   (class-slots (cddr parts))
-	   (readers (make-hash-table :test #'eq))
+	   (accessors (make-hash-table :test #'eq))
 	   (slots (mapcar #'(lambda (slot)
 			      (setf slot (ensure-list slot))
 			      (set-attr :type 'simple-string)
 			      (set-attr :initarg (intern (string-upcase (symbol-name (car slot))) 'keyword))
-			      (let ((reader (make-reader (car slot))))
-				(setf (gethash reader readers) nil)
-				(set-attr :reader reader))
+			      (let* ((supplied-p (getf (cdr slot) :accessor))
+				     (accessor (or supplied-p
+						   (make-reader (car slot)))))
+				(setf (gethash accessor accessors) nil)
+				(unless supplied-p 
+				  (set-attr :accessor accessor)))
 			      slot)
 			  instance-slots)))
       `(progn
@@ -125,8 +128,9 @@ to the list of supers."
 	   ,@class-slots
 	   ,@(unless (assoc :metaclass class-slots)
 	       `((:metaclass element-class))))
-	 ,@(loop for k being each hash-key of readers
-		 collect `(export ',k))))))
+	 (export ',name)
+	 ,@(loop for accessor being each hash-key of accessors
+		 collect `(export ',accessor))))))
 
 
 

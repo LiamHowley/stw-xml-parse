@@ -263,8 +263,9 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     (error "No elements found in global context."))
 
   (:method ((node document-node))
+    (declare (inline consume-whitespace))
     ;; first skip newlines tabs etc.
-    (funcall *consume-whitespace*)
+    (consume-whitespace)
     ;; now read
     (let ((char (stw-read-char)))
       (cond ((eq char *opening-char*)
@@ -551,8 +552,9 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 (defmethod read-whitespace (node)
+  (declare (inline consume-whitespace))
   (multiple-value-bind (start end)
-      (funcall *consume-whitespace*)
+      (consume-whitespace)
     (when (and *preserve-whitespace*
 	       (> end start))
       (let ((whitespace (subseq *document* start end)))

@@ -28,7 +28,7 @@
    :*length* 
    :*decoder*
    :*encoder*
-   :*consume-whitespace*
+   :consume-whitespace
    :consume-until
    :stw-read-char
    :next

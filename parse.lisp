@@ -526,7 +526,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 
-;;; read non jvaluated content and sub-elements
+;;; read non evaluated content and sub-elements
 
 (defmethod read-content ((node sgml-node))
   (with-slots (the-content closing-tag) node

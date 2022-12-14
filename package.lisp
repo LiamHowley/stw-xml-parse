@@ -68,6 +68,7 @@
    :defclass-with-initargs
 
    ;; specials
+   :*opening-char*
    :*element-class-map*
    :*element-class-trie*
    :*preserve-whitespace*
@@ -142,8 +143,7 @@
    :parse-value
    :get-element-name
    :map-attribute-to-slot
-   :map-attribute
-   :tag-open-char)
+   :map-attribute)
 
   ;; printing / writing
   (:export

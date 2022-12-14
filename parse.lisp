@@ -1,12 +1,14 @@
 (in-package xml.parse)
 
+(defvar *opening-char* #\<)
+
 (defvar *element-name* (read-until (match-character #\> #\space #\/ #\!)))
 
 (defvar *attribute-name* (read-until (match-character #\= #\space #\>)))
 
 (defvar *next-attribute* (read-until (match-character #\space #\= #\> #\/)))
 
-(defvar *next-element* (read-and-decode (match-character #\<)))
+(defvar *next-element* (read-and-decode (match-character *opening-char*)))
 
 (defvar *element-tags* (read-until (match-character #\< #\>)))
 
@@ -171,9 +173,6 @@ interactions can be devised with method specialization.")
     node))
 
 
-(defmethod tag-open-char ((node xml-document-node))
-  #\<)
-
 
 (defun read-into-object ()
   "Retrieve element-class or string and find appropriate node"
@@ -193,7 +192,7 @@ interactions can be devised with method specialization.")
 	   ;; an opening character.
 	   (prog1
 	       (make-instance 'text-node
-			      :text (make-string 1 :initial-element (tag-open-char)))
+			      :text (make-string 1 :initial-element *opening-char*))
 	     (next))))))
 
 
@@ -268,7 +267,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     (funcall *consume-whitespace*)
     ;; now read
     (let ((char (stw-read-char)))
-      (cond ((eq char (tag-open-char node))
+      (cond ((eq char *opening-char*)
 	     (next)
 	     (bind-child-node node (read-into-object)))
 	    ((eq :eof char) nil)

@@ -136,11 +136,6 @@ interactions can be devised with method specialization.")
     nil)
 
   (:method 
-      :around ((parent-node branch-node) (child-node dom-node))
-    (call-next-method)
-    parent-node)
-
-  (:method 
       ((parent-node branch-node) (child-node dom-node))
     (push child-node (slot-value parent-node 'child-nodes))
     (setf (slot-value child-node 'parent-node) parent-node))

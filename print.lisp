@@ -50,13 +50,14 @@
 
 
 (declaim (inline indent-string)
-	 (ftype (function (fixnum stream) simple-string) indent-string))
+	 (ftype (function ((or null fixnum) stream) (or null simple-string)) indent-string))
 
 (defun indent-string (num stream)
   "Indent string by number of chars. Takes two args: num and stream."
   (declare (optimize (speed 3) (safety 0)))
-  (fresh-line stream)
-  (write-string (make-string num :initial-element #\space) stream))
+  (when *indent*
+    (fresh-line stream)
+    (write-string (make-string num :initial-element #\space) stream)))
 
 
 (defun serialize (object &optional (indent *indent*) (stream (make-string-output-stream)))
@@ -136,8 +137,7 @@
 
 (defmethod serialize-object ((node sgml-node) (stream stream) &optional indent include-children)
   (declare (ignore indent include-children))
-  (when *indent*
-    (indent-string indent stream))
+  (indent-string indent stream)
   (write-char #\< stream)
   (write-string (class->element (class-of node)) stream)
   (write-string (slot-value node 'the-content) stream)
@@ -145,14 +145,12 @@
 
 
 (defun print-opening-tag (element stream indent)
-  (when *indent*
-    (indent-string indent stream))
+  (indent-string indent stream)
   (write-char #\< stream)
   (write-string element stream))
 
 (defun print-closing-tag (element stream indent)
-  (when *indent*
-    (indent-string indent stream))
+  (indent-string indent stream)
   (write-string "</" stream)
   (write-string element stream)
   (write-char #\> stream))

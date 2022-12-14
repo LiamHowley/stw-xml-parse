@@ -300,14 +300,32 @@ is of a type specified in parents.")
 
 
 
-(defgeneric remove-node (node)
-  (:documentation "Remove node from nodelist.")
-  (:method
-       (node)
-      (with-slots (parent-node) node
-	(remove node (slot-value parent-node 'child-nodes)))
-      (setf parent-node nil)
-      node))
+(defgeneric remove-node (node &optional merge-branch)
+  (:documentation "Remove node from nodelist. If merge-branch
+is T, merge the children of node into the child-nodes list
+of parent-node, where parent-node is derived from node.")
+
+  (:method (node &optional merge-branch)
+    (with-slots (parent-node) node
+      (let ((child-nodes (slot-value parent-node 'child-nodes)))
+	(if merge-branch
+	    (setf (slot-value parent-node 'child-nodes)
+		  (loop
+		    for i from 0
+		    for child in child-nodes
+		    for child-nodes% = (when (eq node child)
+					 (let ((children (slot-value node 'child-nodes)))
+					   (loop
+					     for child in children
+					     do (setf (slot-value child 'parent-node) parent-node))
+					   children))
+		    when child-nodes%
+		      append (subseq child-nodes 0 i)
+		      and append child-nodes%
+		      and append (subseq child-nodes (1+ i))))
+	    (setf (slot-value parent-node 'child-nodes) (remove node child-nodes))))
+      (setf parent-node nil))
+    node))
 
 
 (defgeneric add-node (node parent-node)

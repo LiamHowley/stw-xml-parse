@@ -68,6 +68,7 @@ designated by predicate and specialised output on (EQL <type>).")
     (let ((list (read-into 'cons predicate)))
       (the array (make-array (length list) :element-type 'simple-array :initial-contents list)))))
 
+
 (defgeneric read-subelements (node)
   (:documentation "Read sub-elements and add to dom tree."))
 
@@ -375,8 +376,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-into
     ((output (eql 'boolean)) predicate)
-  (let ((value (funcall (read-and-decode #'(lambda (char)
-					     (funcall predicate char))))))
+  (let ((value (funcall (read-and-decode predicate))))
     (cond ((string-equal "true" value)
 	   (the boolean t))
 	  ((string-equal "false" value)

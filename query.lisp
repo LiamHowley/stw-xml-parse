@@ -10,7 +10,7 @@ node back in, to create a unique copy of node")
     (cond ((readerp)
 	   (read-from-string (write-to-string node)))
 	  (t
-	   (set-reader #'read-html)
+	   (set-reader #'read-xml)
 	   (read-from-string (write-to-string node))
 	   (remove-reader)))))
 

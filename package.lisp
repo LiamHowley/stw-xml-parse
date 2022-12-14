@@ -127,6 +127,7 @@
 
    ;; reading/parsing functions
   (:export
+   :parse%
    :parse-document
    :read-element
    :read-element-name
@@ -147,12 +148,13 @@
 
   ;; printing / writing
   (:export
-   :*print-style*
+   :*indent*
    :*print-childnodes*
    :serialize
    :serialize-object
    :write-to-file
-   :print-slot)
+   :print-slot
+   :indent-string)
 
   ;; conditions & restarts
   (:export

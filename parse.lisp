@@ -47,9 +47,14 @@ designated by predicate and specialised output on (EQL <type>).")
     (parse-value output (funcall (read-and-decode predicate))))
 
   (:method
-      ((output (eql 'list)) predicate)
-    (read-into 'cons predicate))
-  
+    ((output (eql 'boolean)) predicate)
+  (let ((value (funcall (read-and-decode predicate))))
+    (cond ((string-equal "true" value)
+	   (the boolean t))
+	  ((string-equal "false" value)
+	   (the boolean nil))
+	  (t (error "The value ~a is not a boolean" value)))))
+
   (:method
       ((output (eql 'cons)) predicate)
     (let ((list)
@@ -68,6 +73,10 @@ designated by predicate and specialised output on (EQL <type>).")
 	     (return)))))
       (nreverse list)))
 
+  (:method
+      ((output (eql 'list)) predicate)
+    (read-into 'cons predicate))
+  
   (:method
       ((output (eql 'array)) predicate)
     (let ((list (read-into 'cons predicate)))
@@ -372,16 +381,6 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       (setf child-nodes
 	    (nreverse child-nodes)))
     node))
-
-
-(defmethod read-into
-    ((output (eql 'boolean)) predicate)
-  (let ((value (funcall (read-and-decode predicate))))
-    (cond ((string-equal "true" value)
-	   (the boolean t))
-	  ((string-equal "false" value)
-	   (the boolean nil))
-	  (t (error "The value ~a is not a boolean" value)))))
 
 
 (defmethod read-attribute-value

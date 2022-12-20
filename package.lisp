@@ -131,6 +131,7 @@
    :read-content
    :read-into
    :read-subelements
+   :attribute-reader-functions
    :bind-child-node
    :prepare-slot
    :assign-value
@@ -157,6 +158,9 @@
    :*mode*
    :class-not-found-error
    :slot-not-found-error
+   :multiple-value-error
+   :use-first-found-value
+   :ignore-attribute
    :assign-generic-node
    :assign-slot-to-attribute
    :ignore-missing-slot)

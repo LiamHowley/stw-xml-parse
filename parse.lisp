@@ -45,18 +45,18 @@
 (defgeneric read-element-attributes (node)
   (:documentation "Read attributes one at a time."))
 
-(defgeneric read-into (output predicate)
+(defgeneric read-into (output reader)
 
   (:documentation "READ-INTO is called to read a portion of document
 designated by predicate and specialised output on (EQL <type>).")
 
   (:method 
-      (output predicate)
-    (parse-value output (funcall (read-and-decode predicate))))
+      (output (reader symbol))
+    (parse-value output (call-reader reader)))
 
   (:method
-    ((output (eql 'boolean)) predicate)
-  (let ((value (funcall (read-and-decode predicate))))
+    ((output (eql 'boolean)) (reader symbol))
+  (let ((value (call-reader reader)))
     (cond ((string-equal "true" value)
 	   (the boolean t))
 	  ((string-equal "false" value)
@@ -64,15 +64,11 @@ designated by predicate and specialised output on (EQL <type>).")
 	  (t (error "The value ~a is not a boolean" value)))))
 
   (:method
-      ((output (eql 'cons)) predicate)
-    (let ((list)
-	  (reader (read-and-decode
-		   #'(lambda (char)
-		       (or (funcall predicate char)
-			   (char= char #\space))))))
+      ((output (eql 'cons)) (reader symbol))
+    (let ((list))
       (loop
 	(multiple-value-bind (token char)
-	    (funcall reader)
+	    (call-reader reader)
 	  (case char
 	    (#\space
 	     (next)
@@ -82,12 +78,12 @@ designated by predicate and specialised output on (EQL <type>).")
       (nreverse list)))
 
   (:method
-      ((output (eql 'list)) predicate)
-    (read-into 'cons predicate))
+      ((output (eql 'list)) (reader symbol))
+    (read-into 'cons (call-reader reader)))
   
   (:method
-      ((output (eql 'array)) predicate)
-    (let ((list (read-into 'cons predicate)))
+      ((output (eql 'array)) (reader symbol))
+    (let ((list (read-into 'cons (call-reader reader))))
       (the array (make-array (length list) :element-type 'simple-array :initial-contents list)))))
 
 
@@ -102,10 +98,12 @@ differently to HTML and wildly so to JSON and other serialization formats."))
   (:documentation "Names are context specific.")
   (:method () nil))
 
-
 (defgeneric prepare-slot (class slot)
   (:documentation "Use this function to setup any objects / tables / arrays etc. 
 in which multiple values are stored"))
+
+(defgeneric assign-value (class slot-name attribute value)
+  (:documentation "Assign value to slot according to type"))
 
 (defgeneric parse-value (output value)
   (:documentation "Return value according to type"))
@@ -392,41 +390,62 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     node))
 
 
+(declaim (ftype (function (character) keyword) attribute-value-reader)
+	 (inline attribute-value-reader))
+
+(defun attribute-value-reader (char)
+  (declare (optimize (speed 3) (safety 0)))
+  (ecase char
+    (#\' :read-until-single-quote)
+    (#\" :read-until-double-quote)))
+
+
 (defmethod read-attribute-value
     ((slot xml-direct-slot-definition) attribute slot-type)
-  (let ((char (stw-read-char))
-	(type slot-type))
+  (let ((char (stw-read-char)))
     (case char
       (#\=
        (next)
        (read-attribute-value slot attribute slot-type))
       ((#\" #\')
        (next)
-       (read-into type #'(lambda (test-char)
-			   (char= char test-char))))
+       (multiple-value-bind (value char%)
+	   (call-reader (attribute-value-reader char))
+	 (cond ((char= char% char)
+		value)
+	       ((char= char% #\space)
+		(restart-case
+		    (multiple-value-error "XML does not support attributes with multiple values." attribute)
+		  (use-value (user-supplied)
+		    user-supplied)
+		  (use-first-found-value (c)
+		    :report "Use first found value and skip the rest"
+		    (declare (ignore c))
+		    (funcall (consume-until (match-character char)))
+		    value)
+		  (ignore-attribute (c)
+		    :report "Ignore all values."
+		    (declare (ignore c))
+		    (funcall (consume-until (match-character char)))
+		    nil))))))
       (t
        (error "xml attributes missing quotes")))))
 
 
-
-(defgeneric assign-slot-value (class slot attribute value)
-  (:documentation "For slots with multiple attributes, such as data-*, events-* etc.")
-
-  (:method ((class element-node) slot attribute value)
-    (declare (ignore attribute))
-    (setf (slot-value class slot) value)))
-
 (defmethod assign-value
-    ((class element-node) (slot xml-direct-slot-definition) slot-name attribute value)
-  (declare (ignore attribute slot))
-  (setf (slot-value class slot-name) value))
+    ((class element-node) slot-name attribute value)
+  (declare (ignore attribute))
+  (when value
+    (setf (slot-value class slot-name) value)))
 
 
 (defmethod read-attribute ((class element-node))
-  (multiple-value-bind (slot slot-name slot-type attribute)
+  (multiple-value-bind (slot slot-name slot-type attribute length)
       (map-attribute-to-slot class)
     (if slot
-	(assign-value class slot slot-name attribute
+	(assign-value class
+		      slot-name
+		      (map-attribute slot-name attribute length)
 		      (read-attribute-value slot attribute slot-type))
 	(let ((start *char-index*)
 	      (attribute (call-reader :attribute-name)))
@@ -472,22 +491,37 @@ differently to HTML and wildly so to JSON and other serialization formats.")
        (read-attribute-value slot attribute slot-type))
       ((#\" #\')
        (next)
-       (funcall (read-and-decode #'(lambda (test-char)
-				     (char= char test-char)))))
+       (multiple-value-bind (value char%)
+	   (call-reader (attribute-value-reader char))
+	 (cond ((char= char% char)
+		value)
+	       ((char= char% #\space)
+		(restart-case (multiple-value-error attribute value)
+		  (use-first-found-value (c)
+		    :report "Use first found value and skip the rest"
+		    (declare (ignore c))
+		    (funcall (consume-until (match-character char)))
+		    value)
+		  (ignore-attribute (c)
+		    :report "Ignore all values."
+		    (declare (ignore c))
+		    (funcall (consume-until (match-character char)))
+		    nil))))))
       (t
        (error "xml attributes missing quotes")))))
 
 
 (defmethod assign-value
-    ((class generic-node) slot slot-name attribute value)
-  (declare (ignore slot))
-  (setf (gethash attribute (slot-value class 'attributes)) value))
+    ((class generic-node) slot-name attribute value)
+  (declare (ignore slot-name))
+  (when value
+    (setf (gethash attribute (slot-value class 'attributes)) value)))
 
 
 (defmethod read-attribute ((class generic-node))
-  (let ((attribute (funcall *next-attribute*))
+  (let ((attribute (call-reader :next-attribute))
 	(slot (find-slot-definition (find-class 'generic-node) 'attributes 'standard-direct-slot-definition)))
-    (assign-value class slot nil attribute (read-attribute-value slot attribute (slot-definition-type slot)))))
+    (assign-value class nil attribute (read-attribute-value slot attribute (slot-definition-type slot)))))
 
 
 (defmethod read-element-attributes ((node generic-node))
@@ -504,9 +538,11 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	(t 
 	 (read-attribute node))))))
 
+(declaim (inline map-attribute-to-slot))
 
-(defmethod map-attribute-to-slot ((node element-node))
+(defun map-attribute-to-slot (node)
   (declare (optimize (safety 0) (speed 3))
+	   (element-node node)
 	   (inline walk-branch trie-leaf next))
   (let ((result)
 	(foundp (walk-branch (slot-value (class-of node) 'slot-index))))
@@ -520,16 +556,13 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	do (setf result (trie-leaf next))
       unless next
 	do (if result
-	       (destructuring-bind (slot slot-name slot-type attribute length)
-		   result
-		 (declare (fixnum length))
-		 (return (values slot slot-name slot-type (map-attribute slot-name attribute length))))
+	       (return (values-list result))
 	       (return)))))
 
 
 (defmethod map-attribute (result attribute length)
   (declare (fixnum length)
-	   (ignore resuilt))
+	   (ignore result))
   (next length)
   attribute)
 

@@ -75,3 +75,19 @@
 (define-restart assign-generic-node (c))
 
 
+;; multiple attribute values are verbotten in XML
+;; and selectively used in HTML.
+
+(define-condition multiple-value-error (simple-error)
+  ((attribute :initarg :attribute :reader attribute)
+   (value :initarg :value :reader value)))
+
+(defun multiple-value-error (format-control &rest format-args)
+  (cerror "Choose an attribute value or ignore the attribute."
+	  'multiple-value-error
+	  :format-control "Multiple values assigned to attribute ~s"
+	  :format-arguments format-args))
+
+(define-restart use-first-found-value (c))
+
+(define-restart ignore-attribute (c))

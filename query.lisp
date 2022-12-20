@@ -98,11 +98,9 @@ node back in, to create a unique copy of node")
      #'(lambda (node attribute)
 	 (let ((test-value (get-attribute-value node attribute)))
 	   (typecase test-value
-	     (atom
-	      (member test-value values :test #'equal))
-	     (cons
+	     ((or atom cons)
 	      (loop for value in values
-		    ,test-fn (member value test-value :test #'equal)))
+		    ,test-fn (member value (ensure-list test-value) :test #'equal)))
 	     (array
 	      (loop for value in values
 		    ,test-fn (loop for value% across test-value

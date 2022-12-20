@@ -69,16 +69,10 @@
 
    ;; specials
    :*opening-char*
+   :*preserve-whitespace*
+   *xml-env-functions*
    :*element-class-map*
    :*element-class-trie*
-   :*preserve-whitespace*
-   :*element-name*
-   :*next-attribute*
-   :*next-element*
-   :*element-tags*
-   :*end-sgml*
-   :*end-comment*
-   :*end-cdata*
 
    ;; meta
    :element-class
@@ -144,7 +138,9 @@
    :parse-value
    :get-element-name
    :map-attribute-to-slot
-   :map-attribute)
+   :map-attribute
+   :call-reader
+   :set-reader-function)
 
   ;; printing / writing
   (:export

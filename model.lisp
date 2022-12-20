@@ -75,7 +75,7 @@ turn"))
 
 (define-sgml-node sgml-node (standard-element-node)
   ((the-content :initarg :the-content :reader the-content)
-   (closing-tag :initform ">")))
+   (closing-tag :initform :end-sgml)))
 
 
 
@@ -171,12 +171,12 @@ element is self-closing. CHANGE-CLASS is invoked in order to dispatch correctly 
 ;; sgml / comments / DTDS etc
 
 (define-sgml-node !-- (sgml-node)
-  ((closing-tag :initarg :closing-tag :initform "-->"))
+  ((closing-tag :initarg :closing-tag :initform :end-comment))
   (:documentation "comment string"))
 
 
 (define-sgml-node ![CDATA[ (sgml-node)
-  ((closing-tag :initarg :closing-tag :initform "]]>"))
+  ((closing-tag :initarg :closing-tag :initform :end-cdata))
   (:case . :upper)
   (:documentation "unparsed data"))
 

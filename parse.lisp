@@ -194,8 +194,9 @@ interactions can be devised with method specialization.")
 	  (name
 	   (restart-case
 	       (class-not-found-error "There is no class matching the element name ~a" name)
-	     (assign-generic-node ()
+	     (assign-generic-node (c)
 	       :report "Use GENERIC-NODE"
+	       (declare (ignore c))
 	       (make-generic-node name))))
 	  (t
 	   ;; as read-into-object was invoked due to encountering
@@ -266,7 +267,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (:method
       :around (node)
     (handler-bind ((class-not-found-error
-		     (take-action c (assign-generic-node))))
+		     (take-action c (assign-generic-node c))))
       (call-next-method)))
 
   (:method (node)
@@ -433,7 +434,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		    (find-slot-definition (class-of class) slot 'xml-direct-slot-definition)
 		    *char-index* start)
 	      (read-attribute class))
-	    (ignore-missing-slot ()
+	    (ignore-missing-slot (c)
 	      :report "Ignore attribute."
 	      (funcall *skip-attribute*)
 	      nil))))))

@@ -58,7 +58,7 @@
 
 (define-restart assign-slot-to-attribute (slot))
 
-(define-restart ignore-missing-slot ())
+(define-restart ignore-missing-slot (c))
 
 
 ;; managing class attribution
@@ -72,4 +72,6 @@
 	  :format-control format-control
 	  :format-arguments (list name)))
 
-(define-restart assign-generic-node ())
+(define-restart assign-generic-node (c))
+
+

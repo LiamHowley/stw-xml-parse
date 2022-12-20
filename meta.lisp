@@ -143,7 +143,7 @@
 
 
 (defmethod (setf slot-index) ((slot xml-direct-slot-definition) (attribute string) (class element-class))
-  "Write for binding a slot to an attribute. Invoked when a slot-missing-error is handled."
+  "Writer for binding a slot to an attribute. Invoked when a slot-missing-error is handled."
   (unless (slot-value slot 'attribute)
     (setf (slot-value slot 'attribute) attribute))
   (insert-word attribute (slot-index class)

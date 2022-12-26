@@ -15,6 +15,7 @@
    :sequence-to-file
    :parse-stream
    :ensure-list
+   :ensure-string
    :concat-string
    :aif
    :awhen
@@ -70,7 +71,6 @@
    ;; specials
    :*opening-char*
    :*preserve-whitespace*
-   *xml-env-functions*
    :*element-class-map*
    :*element-class-trie*
 
@@ -91,7 +91,6 @@
    :define-element-node
    :define-sgml-node
    :document-node
-   :xml-document-node
    :dom-node
    :standard-element-node
    :element-node
@@ -125,6 +124,7 @@
    :parse-document
    :read-element
    :read-element-name
+   :read-into-object
    :read-element-attributes
    :read-attribute
    :read-attribute-value

@@ -16,6 +16,6 @@
     `(defclass ,name ,@parts)))
 
 
-(defun make-reader (sym)
+(defun make-accessor-name (sym)
   (let ((package (stw.util:find-and-replace (package-name *package*) '((#\. . #\-)))))
     (intern (concatenate 'string package "-" (symbol-name sym)) *package*)))

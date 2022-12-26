@@ -16,9 +16,9 @@ Use quickload to call ~(ql:quickload :stw-xml-parse)~. If not found in the quick
 
 ** Basic Model
 
-*** Document Nodes
+*** Document Node
 
-XML-DOCUMENT-NODE is a subclass of DOCUMENT-NODE. When parsing a document, this node is either created and returned, or passed to the function PARSE-DOCUMENT, and subsequently returned. It contains the slots: CHILD-NODES, DOCUMENT, and FILE.
+When parsing a document a root node of type DOCUMENT-NODE is created and returned, containing the slots: CHILD-NODES, DOCUMENT, and FILE.
 
 *** Dom Nodes
 
@@ -108,22 +108,22 @@ Catch or flag deprecated or obsolete elements. A keyword, it defaults to :active
 Parsing a file or string is straightforward:
 
 #+BEGIN_SRC lisp
-(parse-document (make-instance 'xml-document-node :file #P"<filename>")) or
+(parse-document <pathname>)) or
 
-(parse-document (make-instance 'xml-document-node :document "<document>"))
+(parse-document <string>))
 #+END_SRC
 
 
-Parsing occurs via the class initialization function INITIALIZE-INSTANCE, and uses the various functions such as READ-CONTENT, READ-ATTRIBUTES, READ-SUBELEMENTS, etc. Each, relies on a set of rules, which are each a closure returned by the functions READ-UNTIL or READ-AND-DECODE, as provided by the lexer in STW-UTILS. 
+Parsing occurs via the class initialization function INITIALIZE-INSTANCE, and uses the various functions such as READ-CONTENT, READ-ATTRIBUTES, READ-SUBELEMENTS, etc. Each, relies on the reader functions, READ-UNTIL or READ-AND-DECODE, as provided by the lexer in STW-UTILS. 
 
-To parse, simply call the function PARSE-DOCUMENT on XML-DOCUMENT-NODE and set either the slot FILE with a path designator of an xml file, or set the slot DOCUMENT with an xml string. Alternatively, providing a string or pathname will result in a XML-DOCUMENT-NODE being generated before being parsed.
+To parse, simply call the function PARSE-DOCUMENT with either a file path designator or string.
 
 #+BEGIN_SRC lisp
-(parse-document #P"<xml-document-url>")
-=> #<XML-DOCUMENT-NODE {1001FF8763}>
+(parse-document #P"<document-pathname>")
+=> #<DOCUMENT-NODE {1001FF8763}>
 #+END_SRC
 
-PARSE-DOCUMENT contains the optional argument PARSER and PRESERVE-WHITESPACE. The latter defaults to NIL; the former: #'READ-ELEMENT. 
+PARSE-DOCUMENT contains the optional argument PARSER, PRESERVE-WHITESPACE and ELEMENT-CLASS-MAP, which each default to #'READ-ELEMENT, NIL, and *ELEMENT-CLASS-MAP*, respectively.
 
 **** Binding Nodes
 
@@ -153,6 +153,10 @@ When there is no class associated with an element the error CLASS-NOT-FOUND-ERRO
 
 In the event of an attribute having no slot, two restarts are made available, ASSIGN-SLOT-TO-ATTRIBUTE and IGNORE-MISSING-SLOT. This error is not handled automatically and will land in the debugger if not handled.
 
+*** MULTIPLE-VALUE-ERROR
+
+XML attributes cannot contain multiple values. When encountered the error MULTIPLE-VALUE-ERROR is thrown. The restarts USE-FIRST-FOUND-VALUE and IGNORE-ATTRIBUTE are provided. 
+
 *** IGNORE-MISSING-SLOT
 
 Advances past both the attribute name and value and continues onwards.
@@ -160,6 +164,14 @@ Advances past both the attribute name and value and continues onwards.
 *** ASSIGN-SLOT-TO-ATTRIBUTE
 
 An interactive restart. Provide the slot definition name for an existing slot in the relevant class. The restart will bind the attribute to slot in the SLOT-INDEX trie of the class.
+
+*** USE-FIRST-FOUND-VALUE
+
+A restart that results in the the first value in a multiple value attribute, assigned to a slot, while the rest are skipped over.
+
+*** IGNORE-ATTRIBUTE
+
+A restart that results in an attribute being entirely ignored when multiple values are encountered.
 
 
 ** Reading and Printing
@@ -171,9 +183,9 @@ When ~(get-macro-character #\<)~ returns true, print-object calls the method ser
 Now when inspecting ~<a href='/some-url'>url</a>~ we see:
 
 #+BEGIN_SRC
-#<XML.PARSE:XML-DOCUMENT-NODE {1003EAC093}>
+#<XML.PARSE:DOCUMENT-NODE {1003EAC093}>
 --------------------
-Class: #<STANDARD-CLASS XML.PARSE:XML-DOCUMENT-NODE>
+Class: #<STANDARD-CLASS XML.PARSE:DOCUMENT-NODE>
 --------------------
  Group slots by inheritance [ ]
  Sort slots alphabetically  [X]

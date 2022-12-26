@@ -388,12 +388,12 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		  (use-first-found-value (c)
 		    :report "Use first found value and skip the rest"
 		    (declare (ignore c))
-		    (funcall (consume-until (match-character char)))
+		    (consume-until (match-character char))
 		    value)
 		  (ignore-attribute (c)
 		    :report "Ignore all values."
 		    (declare (ignore c))
-		    (funcall (consume-until (match-character char)))
+		    (consume-until (match-character char))
 		    nil))))))
       (t
        (error "xml attributes missing quotes")))))

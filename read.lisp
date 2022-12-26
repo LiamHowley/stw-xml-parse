@@ -16,7 +16,7 @@
        (let ((output (with-output-to-string (out)
 		       (write-char #\< out)
 		       (parse-stream stream out))))
-	 (parse-document (make-instance 'xml-document-node :document output)))))))
+	 (parse-document output))))))
 
 (defun set-reader (&optional (reader #'read-xml))
   (setf *initial-readtable* (copy-readtable *readtable*))

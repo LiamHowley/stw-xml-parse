@@ -158,13 +158,13 @@ interactions can be devised with method specialization.")
 
 
 
-(defun read-into-object ()
+(defun read-into-object (&optional node)
   "Retrieve element-class or string and find appropriate node"
   (declare (optimize (speed 3) (safety 0)))
   (multiple-value-bind (class name)
       (read-element-name)
     (cond (class
-	   (make-instance class :stw-reader t))
+	   (make-instance class :stw-reader t :parent-node node))
 	  (name
 	   (restart-case
 	       (class-not-found-error "There is no class matching the element name ~a" name)
@@ -343,7 +343,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     (next)
 	     (read-whitespace node)
 	     ;; bind child-nodes at this point.
-	     (bind-child-node node (read-into-object)))))
+	     (bind-child-node node (read-into-object node)))))
 	 (t 
 	  (read-whitespace node)))))
 
@@ -357,7 +357,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     node))
 
 
-(declaim (ftype (function (character) keyword) attribute-value-reader)
+(declaim (ftype (function (character) function) attribute-value-reader)
 	 (inline attribute-value-reader))
 
 (defun attribute-value-reader (char)

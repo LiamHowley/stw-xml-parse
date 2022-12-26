@@ -2245,10 +2245,7 @@
 	   do (insert-word entity trie character)))
   trie)
 
-
 (defparameter *entity-trie* (entity-trie *entity-reference*))
-
-(defparameter *entity-trie-clone* (entity-trie *entity-reference*))
 
 (declaim (ftype (function (simple-string) function) get-decoder))
 

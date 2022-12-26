@@ -35,19 +35,11 @@
   (let* ((*document* (text node))
 	 (*decoder* (get-decoder *document*))
 	 (*char-index* 0)
-	 (*length* (length *document*))
-	 (reader (read-and-decode)))
-    (princ (funcall reader) stream)))
+	 (*length* (length *document*)))
+    (princ (read-and-decode) stream)))
 
 
 ;;; serializing 
-
-(defmacro if-attribute-value (object slot &body body)
-  "if attribute has value then ... Anaphora: slot-value is available for capture."
-  `(let ((slot-value (slot-value ,object (slot-definition-name ,slot))))
-     (when slot-value
-       ,@body)))
-
 
 (declaim (inline indent-string)
 	 (ftype (function ((or null fixnum) stream) (or null simple-string)) indent-string))
@@ -99,9 +91,8 @@
   (with-encoder
       (slot-value object 'text)
       *encoder*
-    (let ((*decoder* (get-decoder *document*))
-	  (reader (read-and-encode)))
-      (princ (funcall reader) stream))))
+    (let ((*decoder* (get-decoder *document*)))
+      (princ (read-and-encode) stream))))
 
 
 (defmethod serialize-object ((declaration ?xml) (stream stream) &optional indent include-children)
@@ -168,13 +159,12 @@
   (maphash #'(lambda (attribute value)
 	       (with-encoder value
 		   *encoder*
-		 (let ((*decoder* (get-decoder *document*))
-		       (reader (read-and-encode)))
+		 (let ((*decoder* (get-decoder *document*)))
 		   (write-char #\space stream)
 		   (write-string attribute stream)
 		   (write-char #\= stream)
 		   (write-char #\' stream)
-		   (write-string (funcall reader) stream)
+		   (write-string (read-and-encode) stream)
 		   (write-char #\' stream))))
 	   (slot-value object 'attributes)))
 
@@ -217,46 +207,40 @@
   (write-string "='" stream))
 
 (defmethod print-slot ((object dom-node) slot type (stream stream))
-  (if-attribute-value
-      object slot
-    (with-encoder
-	slot-value
-	*encoder*
-      (let ((*decoder* (get-decoder *document*))
-	    (reader (read-and-encode)))
-	(print-attribute-handle slot stream)
-	(write-string (funcall reader) stream)
-	(write-char #\' stream)))))
+  (awhen (slot-value object (slot-definition-name slot))
+    (if (numberp self)
+	(print-slot object slot 'number stream)
+	(with-encoder self *encoder*
+	  (let ((*decoder* (get-decoder *document*)))
+	    (print-attribute-handle slot stream)
+	    (write-string (read-and-encode) stream)
+	    (write-char #\' stream))))))
 
-(defmethod print-slot ((object dom-node) slot (type (eql 'real)) (stream stream))
-  (if-attribute-value
-      object slot
+(defmethod print-slot ((object dom-node) slot (type (eql 'number)) (stream stream))
+  (awhen (slot-value object (slot-definition-name slot))
     (print-attribute-handle slot stream)
-    (write-string (ensure-string slot-value) stream)
+    (write-string (ensure-string self) stream)
     (write-char #\' stream)))
 
+
 (defmethod print-slot ((object dom-node) slot (type (eql 'array)) (stream stream))
-  (if-attribute-value
-      object slot
+  (awhen (slot-value object (slot-definition-name slot))
     (with-encoder
-	(concat-string slot-value t)
+	(concat-string self t)
 	*encoder*
-      (let ((*decoder* (get-decoder *document*))
-	    (reader (read-and-encode)))
+      (let ((*decoder* (get-decoder *document*)))
 	(print-attribute-handle slot stream)
-	(write-string (funcall reader) stream)
+	(write-string (read-and-encode) stream)
 	(write-char #\' stream)))))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'cons)) (stream stream))
-  (if-attribute-value
-      object slot
+  (awhen (slot-value object (slot-definition-name slot))
     (with-encoder
-	(concat-string slot-value t)
+	(concat-string self t)
 	*encoder*
-      (let ((*decoder* (get-decoder *document*))
-	    (reader (read-and-encode)))
+      (let ((*decoder* (get-decoder *document*)))
 	(print-attribute-handle slot stream)
-	(write-string (funcall reader) stream)
+	(write-string (read-and-encode) stream)
 	(write-char #\' stream)))))
 
 (defmethod print-slot ((object dom-node) slot (type (eql 'boolean)) (stream stream))

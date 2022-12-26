@@ -345,8 +345,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; bind child-nodes at this point.
 	     (bind-child-node node (read-into-object)))))
 	 (t 
-	  (read-whitespace node)
-	  (read-content node)))))
+	  (read-whitespace node)))))
 
 
 (defmethod read-subelements :around ((node branch-node))

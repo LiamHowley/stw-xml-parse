@@ -1,32 +1,6 @@
 (in-package xml.parse)
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-
-  (defvar *opening-char* #\<)
-
-  (defvar *xml-env-functions*
-    (let ((table (make-hash-table :test #'eq :size 16)))
-      (flet ((set-reader (sym func)
-	       (setf (gethash sym table) func)))
-	(set-reader :element-delimiter (read-until (match-character #\> #\space #\/ #\!)))
-	(set-reader :attribute-delimiter (read-until (match-character #\> #\space #\/)))
-	(set-reader :attribute-name (read-until (match-character #\= #\space #\>)))
-	(set-reader :next-attribute (read-until (match-character #\space #\= #\> #\/)))
-	(set-reader :next-element (read-and-decode (match-character *opening-char*)))
-	(set-reader :element-tags (read-until (match-character #\< #\>)))
-	(set-reader :end-sgml (read-until (match-character #\>)))
-	(set-reader :end-comment (read-until (match-string "-->")))
-	(set-reader :end-cdata (read-until (match-string "]]>")))
-	(set-reader :skip-attribute (consume-until (match-character #\space #\>)))
-	(set-reader :read-until-single-quote (read-and-decode (match-character #\space #\')))
-	(set-reader :read-until-double-quote (read-and-decode (match-character #\space #\"))))
-      table)))
-  
-(defun set-reader-function (sym func)
-  (setf (gethash sym *xml-env-functions*) func))
-
-(defmacro call-reader (sym)
-  `(funcall (gethash ,sym *xml-env-functions*)))
+(defvar *opening-char* #\<)
 
 (defvar *preserve-whitespace* nil
   "New line and indentation? Boolean. Don't set directly.")
@@ -45,30 +19,30 @@
 (defgeneric read-element-attributes (node)
   (:documentation "Read attributes one at a time."))
 
-(defgeneric read-into (output reader)
+(defgeneric read-into (output predicate)
 
   (:documentation "READ-INTO is called to read a portion of document
 designated by predicate and specialised output on (EQL <type>).")
 
   (:method 
-      (output (reader symbol))
-    (parse-value output (call-reader reader)))
+      (output (predicate function))
+    (parse-value output (read-and-decode predicate)))
 
   (:method
-    ((output (eql 'boolean)) (reader symbol))
-  (let ((value (call-reader reader)))
-    (cond ((string-equal "true" value)
-	   (the boolean t))
-	  ((string-equal "false" value)
-	   (the boolean nil))
-	  (t (error "The value ~a is not a boolean" value)))))
+      ((output (eql 'boolean)) (predicate function))
+    (let ((value (read-and-decode predicate)))
+      (cond ((string-equal "true" value)
+	     (the boolean t))
+	    ((string-equal "false" value)
+	     (the boolean nil))
+	    (t (error "The value ~a is not a boolean" value)))))
 
   (:method
-      ((output (eql 'cons)) (reader symbol))
+      ((output (eql 'cons)) (predicate function))
     (let ((list))
       (loop
 	(multiple-value-bind (token char)
-	    (call-reader reader)
+	    (read-and-decode predicate)
 	  (case char
 	    (#\space
 	     (next)
@@ -78,12 +52,12 @@ designated by predicate and specialised output on (EQL <type>).")
       (nreverse list)))
 
   (:method
-      ((output (eql 'list)) (reader symbol))
-    (read-into 'cons (call-reader reader)))
+      ((output (eql 'list)) (predicate function))
+    (read-into 'cons (read-and-decode predicate)))
   
   (:method
-      ((output (eql 'array)) (reader symbol))
-    (let ((list (read-into 'cons (call-reader reader))))
+      ((output (eql 'array)) (predicate function))
+    (let ((list (read-into 'cons predicate)))
       (the array (make-array (length list) :element-type 'simple-array :initial-contents list)))))
 
 
@@ -291,7 +265,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-element-name ()
   (multiple-value-bind (name char)
-      (call-reader :element-delimiter)
+      (read-until (match-character #\> #\space #\/ #\!))
     (case char
       (#\!
        (get-element-name))
@@ -327,7 +301,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		  (setf *char-index* index)
 		  (return result))
 		 (t 
-		  (return (values nil (call-reader :element-delimiter))))))))
+		  (return (values nil (read-until (match-character #\> #\space #\/ #\!)))))))))
 
 
 (defmethod read-subelements ((node branch-node))
@@ -352,7 +326,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; Closing tag found.
 	     ;; Consume #\< and #\/ characters and compare with opening tag
 	     (next 2)
-	     (let ((closing-tag (call-reader :element-tags)))
+	     (let ((closing-tag (read-until (match-character #\< #\>))))
 	       (awhen (action-p *mode*)
 		 (let ((opening-tag (or (class->element (class-of node))
 					(class->element node))))
@@ -390,8 +364,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 (defun attribute-value-reader (char)
   (declare (optimize (speed 3) (safety 0)))
   (ecase char
-    (#\' :read-until-single-quote)
-    (#\" :read-until-double-quote)))
+    (#\' (match-character #\' #\space))
+    (#\" (match-character #\" #\space))))
 
 
 (defmethod read-attribute-value
@@ -404,7 +378,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       ((#\" #\')
        (next)
        (multiple-value-bind (value char%)
-	   (call-reader (attribute-value-reader char))
+	   (read-and-decode (attribute-value-reader char))
 	 (cond ((char= char% char)
 		value)
 	       ((char= char% #\space)
@@ -442,7 +416,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		      (map-attribute slot-name attribute length)
 		      (read-attribute-value slot attribute slot-type))
 	(let ((start *char-index*)
-	      (attribute (call-reader :attribute-name)))
+	      (attribute (read-until (match-character #\= #\space #\>))))
 	  (restart-case
 	      (slot-not-found-error "There are no slots representing the attribute ~a"
 				    attribute)
@@ -455,10 +429,9 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		    (find-slot-definition (class-of class) slot 'xml-direct-slot-definition)
 		    *char-index* start)
 	      (read-attribute class))
-	    (ignore-missing-slot (c)
+	    (ignore-missing-slot ()
 	      :report "Ignore attribute."
-	      (declare (ignore c))
-	      (call-reader :skip-attribute)
+	      (consume-until (match-character #\space #\>))
 	      nil))))))
 
 
@@ -486,7 +459,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       ((#\" #\')
        (next)
        (multiple-value-bind (value char%)
-	   (call-reader (attribute-value-reader char))
+	   (read-and-decode (attribute-value-reader char))
 	 (cond ((char= char% char)
 		value)
 	       ((char= char% #\space)
@@ -494,12 +467,12 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		  (use-first-found-value (c)
 		    :report "Use first found value and skip the rest"
 		    (declare (ignore c))
-		    (funcall (consume-until (match-character char)))
+		    (consume-until (match-character char))
 		    value)
 		  (ignore-attribute (c)
 		    :report "Ignore all values."
 		    (declare (ignore c))
-		    (funcall (consume-until (match-character char)))
+		    (consume-until (match-character char))
 		    nil))))))
       (t
        (error "xml attributes missing quotes")))))
@@ -513,7 +486,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 (defmethod read-attribute ((class generic-node))
-  (let ((attribute (call-reader :next-attribute))
+  (let ((attribute (read-until (match-character #\space #\= #\> #\/)))
 	(slot (find-slot-definition (find-class 'generic-node) 'attributes 'standard-direct-slot-definition)))
     (assign-value class nil attribute (read-attribute-value slot attribute (slot-definition-type slot)))))
 
@@ -566,15 +539,15 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-content ((node sgml-node))
   (with-slots (the-content closing-tag) node
-    (setf the-content (string-downcase (call-reader closing-tag)))))
+    (setf the-content (read-until (match-string closing-tag)))))
 
 (defmethod read-content ((node content-node))
   (with-slots (the-content closing-tag) node
     (next)
-    (setf the-content (call-reader closing-tag))))
+    (setf the-content (read-until (match-string closing-tag)))))
 
 (defmethod read-content (node)
-  (awhen (call-reader :next-element)
+  (awhen (read-and-decode (match-character *opening-char*))
     (bind-child-node node (make-instance 'text-node :text self))))
 
 

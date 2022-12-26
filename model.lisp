@@ -22,9 +22,6 @@
 	     :accessor document))
   (:documentation "For whole documents or document fragments, (e.g. template files)."))
 
-(defclass xml-document-node (document-node)
-  ())
-
 (defclass dom-node ()
   ((parent-node :initarg :parent-node
 		:initform nil

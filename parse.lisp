@@ -110,40 +110,35 @@ in which multiple values are stored"))
 
 (defgeneric get-element-name ())
 
+
 (defgeneric parse-document (document &key)
   (:documentation "Requires a document node and an optional parsing function 
 that accepts a document node. Makes best effort to maintain coherence and 
 avoid trailing/malformed tags/text.")
 
   (:method
-      ((document string) &key (parser #'read-element) preserve-whitespace)
-    (parse-document (make-instance 'xml-document-node :document document)
-		    :parser parser
-		    :preserve-whitespace preserve-whitespace))
+      ((document string)
+       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*) file)
+    (declare (inline parse%))
+    (let ((*preserve-whitespace* preserve-whitespace)
+	  (*element-class-map* element-class-map))
+      (parse% parser
+	      (make-instance 'document-node
+			     :document document
+			     :file file)
+	      document)))
 
   (:method
-      ((file pathname) &key (parser #'read-element) preserve-whitespace)
-    (parse-document (make-instance 'xml-document-node :file file)
-		    :parser parser
-		    :preserve-whitespace preserve-whitespace))
-
-  (:method
-      ((document-node xml-document-node) &key (parser #'read-element) preserve-whitespace)
+      ((file pathname)
+       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*))
     (declare (ignore parser preserve-whitespace)
 	     (inline parse-stream))
-    (with-slots (file) document-node
-      (unless (slot-boundp document-node 'document)
-	(setf (slot-value document-node 'document) 
-	      (with-open-file (in file :direction :input)
-		(with-output-to-string (out)
-		  (parse-stream in out)))))
-      (call-next-method)))
-
-  (:method
-      ((document document-node) &key (parser #'read-element) preserve-whitespace)
-    (declare (inline parse%))
-    (let ((*preserve-whitespace* preserve-whitespace))
-      (parse% parser document))))
+    (parse-document
+     (with-open-file (in file :direction :input)
+       (with-output-to-string (out)
+	 (parse-stream in out)))
+     :element-class-map element-class-map
+     :file file)))
 
 
 (defgeneric bind-child-node (parent-node child-node)
@@ -173,13 +168,12 @@ interactions can be devised with method specialization.")
       (call-next-method))))
 
 
-(defun parse% (fn node)
+(defun parse% (fn node document)
   (let* ((*char-index* 0)
-	 (*line-number* 1)
-	 (*document* (slot-value node 'document))
+	 (*document* document)
 	 (*length* (array-total-size *document*))
 	 (*decoder* (get-decoder *document*)))
-    (declare (fixnum *char-index* *line-number* *length*)
+    (declare (fixnum *char-index* *length*)
 	     (simple-string *document*))
     (loop
       while (and (< *char-index* *length*)

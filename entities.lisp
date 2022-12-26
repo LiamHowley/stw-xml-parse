@@ -2260,25 +2260,24 @@
 	       (fixnum depth)
 	       (optimize (speed 3) (safety 0)))
       (loop
-	 for i of-type fixnum from index below (length seq)
-	 for char = (the character (aref seq i))
-	 for next = (or (funcall foundp char)
-			resume-at)
-	 for value = (when next
-		       (trie-leaf next))
-	 unless next
-	 do (return (setf depth i))
-	 when value
-	 do (setf result value)
-	 when resume-at
-	 unless (char= char #\0)
-	 do (setf resume-at nil)
-	 when (or (char= char #\#)
-		  (char= char #\x))
-	 do (setf resume-at next))
+	for i of-type fixnum from index below (length seq)
+	for char = (the character (aref seq i))
+	for next = (or (funcall foundp char)
+		       resume-at)
+	for value = (when next
+		      (trie-leaf next))
+	unless next
+	  do (return (setf depth i))
+	when value
+	  do (setf result value)
+	when resume-at
+	  unless (char= char #\0)
+	    do (setf resume-at nil)
+	when (or (char= char #\#)
+		 (char= char #\x))
+	  do (setf resume-at next))
       (when result
-	(values (list index depth)
-		result)))))
+	(values result depth)))))
 
 
 (declaim (inline encode-char)
@@ -2305,6 +2304,7 @@
        (write-string "&quot;" stream))
       (#\'
        (write-string "&#39;" stream))
-      (t
+     (t
        (write-char char stream)))
     (the simple-string (get-output-stream-string stream))))
+ 

@@ -259,7 +259,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (:method ((node document-node))
     (declare (inline consume-whitespace))
     ;; first skip newlines tabs etc.
-    (consume-whitespace)
+    (read-whitespace node)
     ;; now read
     (let ((char (stw-read-char)))
       (cond ((eq char *opening-char*)

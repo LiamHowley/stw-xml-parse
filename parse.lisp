@@ -103,13 +103,14 @@ avoid trailing/malformed tags/text.")
   (:method
       ((file pathname)
        &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*))
-    (declare (ignore parser preserve-whitespace)
-	     (inline parse-stream))
+    (declare (inline parse-stream))
     (parse-document
      (with-open-file (in file :direction :input)
        (with-output-to-string (out)
 	 (parse-stream in out)))
      :element-class-map element-class-map
+     :preserve-whitespace preserve-whitespace 
+     :parser parser
      :file file)))
 
 

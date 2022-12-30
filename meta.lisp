@@ -137,9 +137,9 @@
   (with-slots (attribute) slot
     (let ((slot-name (slot-definition-name slot)))
       (unless attribute
-	(setf attribute (string-downcase slot-name))
-	(unless (stringp attribute)
-	  (error "the attribute ~s is not a string." attribute))))))
+	(setf attribute (string-downcase slot-name)))
+      (unless (stringp attribute)
+	(error "the attribute ~s is not a string." attribute)))))
 
 
 (defmethod (setf slot-index) ((slot xml-direct-slot-definition) (attribute string) (class element-class))

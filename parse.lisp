@@ -161,7 +161,7 @@ interactions can be devised with method specialization.")
 (defun read-into-object (&optional node)
   "Retrieve element-class or string and find appropriate node"
   (declare (optimize (speed 3) (safety 0)))
-  (multiple-value-bind (class name)
+  (multiple-value-bind (class name text)
       (read-element-name)
     (cond (class
 	   (make-instance class :stw-reader t :parent-node node))
@@ -274,15 +274,18 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-element-name ()
   (multiple-value-bind (name char)
-      (read-until (match-character #\> #\space #\/ #\!))
+      (read-until (match-character #\> #\space #\/ #\! #\<))
     (case char
       (#\!
        (get-element-name))
+      (#\<
+       (values nil nil (concatenate 'string "<" name)))
       (t
-       (let ((name (string-downcase name)))
-	 (aif (gethash name *element-class-map*)
-	      (values self name)
-	      (values nil name)))))))
+       (when name
+	 (let ((name (string-downcase name)))
+	   (aif (gethash name *element-class-map*)
+		(values self name)
+		(values nil name))))))))
 
 
 (defmethod get-element-name ()

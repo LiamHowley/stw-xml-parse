@@ -74,10 +74,6 @@ differently to HTML and wildly so to JSON and other serialization formats."))
   (:documentation "Names are context specific.")
   (:method () nil))
 
-(defgeneric prepare-slot (class slot)
-  (:documentation "Use this function to setup any objects / tables / arrays etc. 
-in which multiple values are stored"))
-
 (defgeneric assign-value (class slot-name attribute value)
   (:documentation "Assign value to slot according to type"))
 

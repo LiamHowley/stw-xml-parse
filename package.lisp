@@ -133,7 +133,6 @@
    :read-subelements
    :attribute-reader-functions
    :bind-child-node
-   :prepare-slot
    :assign-value
    :assign-slot-value
    :parse-value

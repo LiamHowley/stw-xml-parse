@@ -74,6 +74,10 @@
 
 (define-restart assign-generic-node (c))
 
+(define-restart ignore-node (c)
+  "Skip over the tag as if it does not exist. Read child-nodes in.
+When node is a branch node, watch out for any stray tags.")
+
 
 ;; multiple attribute values are verbotten in XML
 ;; and selectively used in HTML.

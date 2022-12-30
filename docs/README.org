@@ -157,6 +157,14 @@ In the event of an attribute having no slot, two restarts are made available, AS
 
 XML attributes cannot contain multiple values. When encountered the error MULTIPLE-VALUE-ERROR is thrown. The restarts USE-FIRST-FOUND-VALUE and IGNORE-ATTRIBUTE are provided. 
 
+*** ASSIGN-GENERIC-NODE
+
+The default handler for a CLASS-NOT-FOUND-ERROR is the restart ASSIGN-GENERIC-NODE. When invoked, parsing continues, but with type GENERIC-NODE.
+
+*** IGNORE-NODE
+
+Another option for handling a CLASS-NOT-FOUND-ERROR is the restart IGNORE-NODE, which will consume the element tag until the specified closing character, and push the element-name to the *STRAY-TAGS* list, so it can be caught during parsing. 
+
 *** IGNORE-MISSING-SLOT
 
 Advances past both the attribute name and value and continues onwards.

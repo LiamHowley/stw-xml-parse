@@ -2,6 +2,8 @@
 
 (defvar *opening-char* #\<)
 
+(defvar *stray-tags*)
+
 (defvar *preserve-whitespace* nil
   "New line and indentation? Boolean. Don't set directly.")
 
@@ -146,7 +148,8 @@ interactions can be devised with method specialization.")
   (let* ((*char-index* 0)
 	 (*document* document)
 	 (*length* (array-total-size *document*))
-	 (*decoder* (get-decoder *document*)))
+	 (*decoder* (get-decoder *document*))
+	 (*stray-tags*))
     (declare (fixnum *char-index* *length*)
 	     (simple-string *document*))
     (loop
@@ -171,13 +174,22 @@ interactions can be devised with method specialization.")
 	     (assign-generic-node (c)
 	       :report "Use GENERIC-NODE"
 	       (declare (ignore c))
-	       (make-generic-node name))))
+	       (make-generic-node name))
+	     (ignore-node (c)
+	       :report "Skip opening and closing tags."
+	       (declare (ignore c))
+	       (let ((*mode* :strict))
+		 (consume-until (match-character #\/ #\>))
+		 (ecase (stw-read-char)
+		   (#\/ (next))
+		   (#\> (push name *stray-tags*)))))))
+	  (text
+	   (make-instance 'text-node :text text))
 	  (t
 	   ;; as read-into-object was invoked due to encountering
 	   ;; an opening character.
 	   (prog1
-	       (make-instance 'text-node
-			      :text (make-string 1 :initial-element *opening-char*))
+	       (make-instance 'text-node :text "<")
 	     (next))))))
 
 
@@ -327,15 +339,19 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; Consume #\< and #\/ characters and compare with opening tag
 	     (next 2)
 	     (let ((closing-tag (read-until (match-character #\< #\>))))
-	       (awhen (action-p *mode*)
-		 (let ((opening-tag (or (class->element (class-of node))
-					(class->element node))))
-		   ;; closing-tag is consumed.
-		   (unless (string= opening-tag closing-tag)
-		     (funcall self "mismatch between opening tag: ~a and closing tag: ~a."
-			      opening-tag closing-tag))))
-	       (return)))
-	    (#\<
+	       (aif (action-p *mode*)
+		    (let ((opening-tag (or (class->element (class-of node))
+					   (class->element node))))
+		      ;; closing-tag is consumed.
+		      (unless (string= opening-tag closing-tag)
+			(cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
+			       (pop *stray-tags*)
+			       (return))
+			      (t
+			       (funcall self "mismatch between opening tag: ~a and closing tag: ~a."
+					opening-tag closing-tag)))))
+		    (return))))
+	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
 	     (bind-child-node node (make-instance 'text-node :text "<"))
 	     (next))

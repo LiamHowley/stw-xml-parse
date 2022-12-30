@@ -160,6 +160,7 @@
    :slot-not-found-error
    :multiple-value-error
    :use-first-found-value
+   :ignore-node
    :ignore-attribute
    :assign-generic-node
    :assign-slot-to-attribute

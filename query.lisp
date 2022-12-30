@@ -306,7 +306,7 @@ of parent-node, where parent-node is derived from node.")
   (:method (node &optional merge-branch)
     (with-slots (parent-node) node
       (let ((child-nodes (slot-value parent-node 'child-nodes)))
-	(if merge-branch
+	(if (and merge-branch (typep node 'branch-node))
 	    (setf (slot-value parent-node 'child-nodes)
 		  (loop
 		    for i from 0

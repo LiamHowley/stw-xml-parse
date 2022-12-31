@@ -132,7 +132,7 @@
   (write-char #\< stream)
   (write-string (class->element (class-of node)) stream)
   (write-string (slot-value node 'the-content) stream)
-  (write-string (slot-value node 'closing-tag) stream))
+  (write-string (slot-value (class-of node) 'closing-tag) stream))
 
 
 (defun print-opening-tag (element stream indent)

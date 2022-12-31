@@ -46,9 +46,7 @@
   (:documentation "Void element that contains only attributes and no content"))
 
 (defclass content-node (element-node)
-  ((the-content :initarg :the-content :initform nil :reader the-content)
-   (closing-tag :reader closing-tag
-		:initform (error "Closing tag requires value, as content-node elements are not evaluated")))
+  ((the-content :initarg :the-content :initform nil :reader the-content))
   (:documentation "Element that has attributes, and whose only child is a string."))
 
 (defclass attribute-node (branch-node)
@@ -71,8 +69,7 @@ turn"))
 	 :reader text)))
 
 (define-sgml-node sgml-node (standard-element-node)
-  ((the-content :initarg :the-content :reader the-content)
-   (closing-tag :initform ">")))
+  ((the-content :initarg :the-content :reader the-content)))
 
 
 
@@ -159,24 +156,28 @@ element is self-closing. CHANGE-CLASS is invoked in order to dispatch correctly 
 
 ;; headers
 
-(define-sgml-node ?xml (leaf-node)
+(define-sgml-node ?xml (sgml-node)
   (version
    (encoding :initform nil)
-   (standalone :initform nil)))
+   (standalone :initform nil))
+  (:closing-tag . ">"))
 
 
 ;; sgml / comments / DTDS etc
 
 (define-sgml-node !-- (sgml-node)
-  ((closing-tag :initarg :closing-tag :initform "-->"))
+  ()
+  (:closing-tag . "-->")
   (:documentation "comment string"))
 
 
 (define-sgml-node ![CDATA[ (sgml-node)
-  ((closing-tag :initarg :closing-tag :initform "]]>"))
+  ()
   (:case . :upper)
+  (:closing-tag . "]]>")
   (:documentation "unparsed data"))
 
 (define-sgml-node !DOCTYPE (sgml-node)
   ()
-  (:case . :upper))
+  (:case . :upper)
+  (:closing-tag . ">"))

@@ -9,9 +9,11 @@
 (defclass element-class (standard-class)
   ((element :initarg :element
 	    :type string
-	    :initform nil
 	    :documentation "Name of mapped element."
 	    :reader class->element)
+   (closing-tag :initarg :closing-tag
+		:initform nil
+		:documentation "Specifically for content-nodes. Otherwise ignored.")
    (accepted-case :initarg :case
 		  :type :keyword
 		  :initform :any
@@ -60,23 +62,26 @@
 
 (defmethod shared-initialize :after ((class element-class) slot-names &key)
   (declare (ignore slot-names))
-  (with-slots (element slot-index accepted-case) class
-    (setf slot-index (make-trie))
-    (loop for slot in (filter-slots-by-type class 'xml-direct-slot-definition)
-	  for attribute = (slot-value slot 'attribute)
-	  when attribute
-	    do (setf (slot-index attribute class) slot))
-    (when element
-      (unless (stringp element)
-	(error "the element ~s is not a string." element)))
-    (setf element (if element
-		      element
-		      (let ((element (symbol-name (class-name class))))
-			(if (eq accepted-case :upper)
-			    (string-upcase element)
-			    (string-downcase element))))
+  (with-slots (element slot-index) class
+    (unless (stringp element)
+      (error "the element ~s is not a string." element))
+    (setf slot-index (make-trie)
 	  ;; map element to class
-	  (gethash element *element-class-map*) class)))
+	  (gethash element *element-class-map*) class)
+    (loop
+      for slot in (filter-slots-by-type class 'xml-direct-slot-definition)
+      for attribute = (slot-value slot 'attribute)
+      when attribute
+	do (setf (slot-index attribute class) slot))))
+
+
+(defmethod slot-unbound (class (instance element-class) (slot-name (eql 'element)))
+  (with-slots (accepted-case) instance
+    (let ((element (symbol-name (class-name instance))))
+      (setf (slot-value instance 'element)
+	    (if (eq accepted-case :upper)
+		(string-upcase element)
+		(string-downcase element))))))
 
 
 
@@ -159,20 +164,13 @@
 (defvar *element-class-trie* (make-trie))
 
 (defclass sgml-class (element-class)
-  ())
+  ((closing-tag :initform ">" :initarg :closing-tag)))
 
 (defmethod shared-initialize :after ((class sgml-class) slot-names &key)
   (declare (ignore slot-names))
   (with-slots (element accepted-case) class
-    (when element
-      (unless (stringp element)
-	(error "the element ~s is not a string." element)))
-      (setf element
-	    (cond (element
-		   (string-upcase element))
-		  ((eq accepted-case :lower)
-		   (string-downcase (symbol-name (class-name class))))
-		  (t (symbol-name (class-name class)))))
+    (unless (stringp element)
+      (error "the element ~s is not a string." element))
       (insert-word element *element-class-trie* class nil)))
 
 (defmacro define-sgml-node (name &body body)

@@ -555,13 +555,15 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 ;;; read non evaluated content and sub-elements
 
 (defmethod read-content ((node sgml-node))
-  (with-slots (the-content closing-tag) node
-    (setf the-content (read-until (match-string closing-tag)))))
+  (with-slots (the-content) node
+    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
+      (setf the-content (read-until (match-string closing-tag))))))
 
 (defmethod read-content ((node content-node))
-  (with-slots (the-content closing-tag) node
+  (with-slots (the-content) node
     (next)
-    (setf the-content (read-until (match-string closing-tag)))))
+    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
+      (setf the-content (read-until (match-string closing-tag))))))
 
 (defmethod read-content (node)
   (awhen (read-and-decode (match-character *opening-char*))

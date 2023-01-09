@@ -7,18 +7,26 @@
 (defvar *preserve-whitespace* nil
   "New line and indentation? Boolean. Don't set directly.")
 
+(defvar *case-sensitive* t)
+
+(defvar *embedded* nil "Documents can contain embedded document models 
+which have altered behaviours for being embedded. For example, svg 
+inherits html rules and behaviours when embedded in a html doc, 
+otherwise it is bound by XML rules.")
+
+
 ;;; reader functions
 
-(defgeneric read-content (node)
+(defgeneric read-content (node filter)
   (:documentation "Read text-node, content-node content, etc."))
 
 (defgeneric read-attribute-value (slot attribute slot-type)
   (:documentation "Read attribute value."))
 
-(defgeneric read-attribute (node)
+(defgeneric read-attribute (node filter)
   (:documentation "Read an attribute."))
 
-(defgeneric read-element-attributes (node)
+(defgeneric read-element-attributes (node filter)
   (:documentation "Read attributes one at a time."))
 
 (defgeneric read-into (output predicate)
@@ -90,19 +98,19 @@ avoid trailing/malformed tags/text.")
 
   (:method
       ((document string)
-       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*) file)
-    (declare (inline parse%))
+       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*) file filter)
+    (declare (inline parse%)
+	     (special filter))
     (let ((*preserve-whitespace* preserve-whitespace)
 	  (*element-class-map* element-class-map))
       (parse% parser
 	      (make-instance 'document-node
-			     :document document
 			     :file file)
 	      document)))
 
   (:method
       ((file pathname)
-       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*))
+       &key (parser #'read-element) preserve-whitespace (element-class-map *element-class-map*) filter)
     (declare (inline parse-stream))
     (parse-document
      (with-open-file (in file :direction :input)
@@ -111,6 +119,7 @@ avoid trailing/malformed tags/text.")
      :element-class-map element-class-map
      :preserve-whitespace preserve-whitespace 
      :parser parser
+     :filter filter
      :file file)))
 
 
@@ -377,7 +386,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	    (#\<
 	     nil)
 	    (t 
-	     (read-content node))))
+	     (read-content node nil))))
 	 (#\<
 	  (case (stw-peek-next-char)
 	    (#\/
@@ -469,7 +478,23 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     (setf (slot-value class slot-name) value)))
 
 
-(defmethod read-attribute ((class element-node))
+
+(defmethod read-attribute ((class element-node) (filter function))
+  (multiple-value-bind (slot slot-name slot-type attribute length)
+      (map-attribute-to-slot class)
+    (cond (slot
+	   (map-attribute slot-name attribute length)
+	   (awhen (read-attribute-value slot attribute slot-type)
+	     (when (and self (funcall filter slot self))
+	       (assign-value class
+			     slot-name
+			     attribute
+			     self))))
+	  (t
+	   (consume-until (match-character #\space #\>))))))
+
+
+(defmethod read-attribute ((class element-node) filter)
   (multiple-value-bind (slot slot-name slot-type attribute length)
       (map-attribute-to-slot class)
     (if slot
@@ -498,6 +523,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 
 (defmethod read-element-attributes ((node element-node))
+
+(defmethod read-element-attributes ((node element-node) filter)
   (loop
     (let ((char (stw-read-char)))
       (case char
@@ -506,7 +533,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	((#\" #\' #\/ #\newline #\space #\tab)
 	 (next))
 	(t 
-	 (read-attribute node))))))
+	 (read-attribute node filter))))))
 
 
 
@@ -547,13 +574,15 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     (setf (gethash attribute (slot-value class 'attributes)) value)))
 
 
-(defmethod read-attribute ((class generic-node))
+(defmethod read-attribute ((class generic-node) filter)
+  (declare (ignore filter))
   (let ((attribute (read-until (match-character #\space #\= #\> #\/)))
 	(slot (find-slot-definition (find-class 'generic-node) 'attributes 'standard-direct-slot-definition)))
     (assign-value class nil attribute (read-attribute-value slot attribute (slot-definition-type slot)))))
 
 
-(defmethod read-element-attributes ((node generic-node))
+
+(defmethod read-element-attributes ((node generic-node) filter)
   (loop
     (let ((char (stw-read-char)))
       (case char
@@ -565,7 +594,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	 (next)
 	 (throw 'self-closing t))
 	(t 
-	 (read-attribute node))))))
+	 (read-attribute node filter))))))
 
 (declaim (inline map-attribute-to-slot))
 
@@ -599,18 +628,28 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 ;;; read non evaluated content and sub-elements
 
-(defmethod read-content ((node sgml-node))
+(defmethod read-content ((node sgml-node) filter)
+  (declare (ignore filter))
   (with-slots (the-content) node
     (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
       (setf the-content (read-until (match-string closing-tag))))))
 
-(defmethod read-content ((node content-node))
+(defmethod read-content ((node content-node) filter)
+  (declare (ignore filter))
   (with-slots (the-content) node
     (next)
     (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
       (setf the-content (read-until (match-string closing-tag))))))
 
-(defmethod read-content (node)
+(defmethod read-content ((node content-node) (filter function))
+  (next)
+  (let* ((closing-tag (slot-value (class-of node) 'closing-tag))
+	 (the-content (read-until (match-string closing-tag))))
+    (when the-content
+      (make-instance 'text-node :text the-content))))
+
+(defmethod read-content (node filter)
+  (declare (ignore filter))
   (awhen (read-and-decode (match-character *opening-char*))
     (bind-child-node node (make-instance 'text-node :text self))))
 

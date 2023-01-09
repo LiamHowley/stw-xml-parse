@@ -157,37 +157,56 @@ interactions can be devised with method specialization.")
     node))
 
 
-
-(defun read-into-object (&optional node)
+(defun read-into-object ()
   "Retrieve element-class or string and find appropriate node"
-  (declare (optimize (speed 3) (safety 0)))
+  (declare (optimize (speed 3) (safety 0))
+	   (special filter))
   (multiple-value-bind (class name text)
       (read-element-name)
-    (cond (class
-	   (make-instance class :stw-reader t :parent-node node))
-	  (name
-	   (restart-case
-	       (class-not-found-error "There is no class matching the element name ~a" name)
-	     (assign-generic-node (c)
-	       :report "Use GENERIC-NODE"
-	       (declare (ignore c))
-	       (make-generic-node name))
-	     (ignore-node (c)
-	       :report "Skip opening and closing tags."
-	       (declare (ignore c))
-	       (let ((*mode* :strict))
-		 (consume-until (match-character #\/ #\>))
-		 (ecase (stw-read-char)
-		   (#\/ (next))
-		   (#\> (push name *stray-tags*)))))))
-	  (text
-	   (make-instance 'text-node :text text))
-	  (t
-	   ;; as read-into-object was invoked due to encountering
-	   ;; an opening character.
-	   (prog1
-	       (make-instance 'text-node :text "<")
-	     (next))))))
+    (let ((node 
+	    (cond (class
+		   (make-instance class))
+		  (name
+		   (case (action-p *mode* 'class-not-found-error)
+		     (class-not-found-error
+		      (restart-case
+			  (class-not-found-error "There is no class matching the element name ~a" name)
+			(assign-generic-node (c)
+			  :report "Use GENERIC-NODE"
+			  (declare (ignore c))
+			  (make-instance 'generic-node :name name))
+			(assign-text-node (c)
+			  :report "Use TEXT-NODE"
+			  (declare (ignore c))
+			  (make-instance 'text-node :text (concatenate 'string "<" name)))
+			(ignore-node (c)
+			  :report "Skip opening and closing tags."
+			  (declare (ignore c))
+			  (let ((*mode* :strict))
+			    (consume-until (match-character #\/ #\>))
+			    (ecase (stw-read-char)
+			      (#\/ (next))
+			      (#\> (push name *stray-tags*)))
+			    nil))))
+		     (warn
+		      (warn "There is no class matching the element name ~a. Making generic node." name)
+		      (make-instance 'generic-node :name (concatenate 'string name)))
+		     (t
+		      (make-instance 'generic-node :name (concatenate 'string name)))))
+		  (text
+		   (make-instance 'text-node :text text))
+		  (t
+		   ;; as read-into-object was invoked due to encountering
+		   ;; an opening character.
+		   (prog1
+		       (make-instance 'text-node :text "<")
+		     (next))))))
+      (cond ((typep node 'text-node)
+	     node)
+	    ((and filter node)
+	     (initialize-node node filter))
+	    (node
+	     (initialize-node node nil))))))
 
 
 

@@ -122,6 +122,9 @@
 (defmethod print-slot (object slot-definition type stream)
   (declare (ignore stream))
   (let ((slot-name (slot-definition-name slot-definition)))
+    (print object)
+    (print slot-name)
+    (terpri)
     (when (slot-boundp object slot-name)
       (call-next-method))))
 
@@ -257,9 +260,10 @@
     for (attribute . value) in (slot-value object (slot-definition-name slot))
     do (write-string " " stream)
     do (write-string (string-downcase attribute) stream)
-    do (write-string "='" stream)
-    do (write-string value stream)
-    do (write-string "'" stream)))
+    when value
+      do (write-string "='" stream)
+      and do (write-string value stream)
+      and do (write-string "'" stream)))
 
 
 

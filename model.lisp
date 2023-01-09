@@ -116,6 +116,11 @@ to the list of supers."
 				  (set-attr :accessor accessor)))
 			      slot)
 			  instance-slots)))
+      (pushnew '(generic-attribute
+		 :initarg :generic-attribute
+		 :type multiple-attributes
+		 :reader generic-attribute)
+	    slots :test #'equal)
       `(progn
 	 (defclass ,name ,supers
 	   ,slots
@@ -127,13 +132,15 @@ to the list of supers."
 		 collect `(export ',accessor))))))
 
 
+(defmethod slot-unbound ((class element-class) instance (slot-name (eql 'generic-attribute)))
+  (setf (slot-value instance slot-name) nil))
+
 
 ;;;; generic nodes
 
 (defclass generic-node (branch-node)
-  ((element-name :initform nil
-		 :type string
-		 :initarg :element-name
+  ((element-name :type string
+		 :initarg :name
 		 :reader class->element)
    (attributes :initform (make-hash-table :test #'equal)
 	       :type hash-table

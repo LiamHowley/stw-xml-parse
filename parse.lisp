@@ -477,6 +477,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (when value
     (setf (slot-value class slot-name) value)))
 
+(defmethod assign-value ((class element-node) (slot-name (eql 'generic-attribute)) attribute value)
+  (push (cons attribute value) (slot-value class 'generic-attribute)))
 
 
 (defmethod read-attribute ((class element-node) (filter function))
@@ -497,32 +499,34 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 (defmethod read-attribute ((class element-node) filter)
   (multiple-value-bind (slot slot-name slot-type attribute length)
       (map-attribute-to-slot class)
-    (if slot
-	(assign-value class
-		      slot-name
-		      (map-attribute slot-name attribute length)
-		      (read-attribute-value slot attribute slot-type))
-	(let ((start *char-index*)
-	      (attribute (read-until (match-character #\= #\space #\>))))
-	  (restart-case
-	      (slot-not-found-error "There are no slots representing the attribute ~a"
-				    attribute)
-	    (assign-slot-to-attribute (slot)
-	      :report "Use a different slot to permanently represent the attribute."
-	      :interactive (lambda () 
-			     (princ "Please specify a slot to use: ")
-			     (list (read)))
-	      (setf (slot-index attribute (class-of class))
-		    (find-slot-definition (class-of class) slot 'xml-direct-slot-definition)
-		    *char-index* start)
-	      (read-attribute class))
-	    (ignore-missing-slot ()
-	      :report "Ignore attribute."
-	      (consume-until (match-character #\space #\>))
-	      nil))))))
+    (let ((start *char-index*)
+	  (attribute (map-attribute slot-name attribute length)))
+      (when (eq slot-name 'generic-attribute)
+	(case *mode*
+	  (:strict
+	   (restart-case
+	       (slot-not-found-error "There are no slots representing the attribute ~a"
+				     attribute)
+	     (assign-slot-to-attribute (slot)
+	       :report "Use a different slot to permanently represent the attribute."
+	       :interactive (lambda () 
+			      (princ "Please specify a slot to use: ")
+			      (list (read)))
+	       (setf (slot-index attribute (class-of class))
+		     (find-slot-definition (class-of class) slot 'xml-direct-slot-definition)
+		     *char-index* start)
+	       (read-attribute class filter))
+	     (ignore-missing-slot ()
+	       :report "Ignore attribute."
+	       (consume-until (match-character #\space #\>))
+	       nil)))
+	  (:verbose
+	   (warn "Assigning the attribute ~s to the slot generic-attribute. Non standard" attribute))))
+      (assign-value class
+		    slot-name
+		    attribute
+		    (read-attribute-value slot attribute slot-type)))))
 
-
-(defmethod read-element-attributes ((node element-node))
 
 (defmethod read-element-attributes ((node element-node) filter)
   (loop
@@ -615,14 +619,23 @@ differently to HTML and wildly so to JSON and other serialization formats.")
       unless next
 	do (if result
 	       (return (values-list result))
-	       (return)))))
+	       (return (generic-attribute (class-of node)))))))
 
+(defmethod generic-attribute ((class element-class))
+  (values (find-slot-definition class
+				'generic-attribute
+				'xml-direct-slot-definition)
+	  'generic-attribute))
 
 (defmethod map-attribute (result attribute length)
   (declare (fixnum length)
 	   (ignore result))
   (next length)
   attribute)
+
+(defmethod map-attribute ((res (eql 'generic-attribute)) attribute length)
+  (declare (ignore length attribute res))
+  (read-until (match-character #\space #\= #\> #\/)))
 
 
 

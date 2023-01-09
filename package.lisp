@@ -101,6 +101,7 @@
    :text-node
    :whitespace-node
    :generic-node
+   :generic-attribute
 
    :parent-node
    :child-nodes

@@ -171,7 +171,7 @@
   (with-slots (element accepted-case) class
     (unless (stringp element)
       (error "the element ~s is not a string." element))
-      (insert-word element *element-class-trie* class nil)))
+      (insert-word element *element-class-trie* class)))
 
 (defmacro define-sgml-node (name &body body)
   `(defclass ,name

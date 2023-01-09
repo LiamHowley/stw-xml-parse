@@ -132,7 +132,8 @@
    :read-into
    :read-subelements
    :attribute-reader-functions
-   :bind-child-node
+   :initialize-node
+   ::bind-child-node
    :assign-value
    :assign-slot-value
    :parse-value

@@ -193,55 +193,88 @@ interactions can be devised with method specialization.")
 
 ;;; initialization
 
-(defmethod initialize-instance ((declaration ?xml) &key stw-reader)
-  (when stw-reader
-    (call-next-method))
-  (unless (slot-value declaration 'version)
-    (error "xml version required with declaration."))
-  declaration)
+(defgeneric initialize-node (node filter)
+
+  (:method ((declaration ?xml) filter)
+    (declare (ignore filter))
+    (unless (slot-value declaration 'version)
+      (error "xml version required with declaration."))
+    declaration)
+
+  (:method ((node sgml-node) filter)
+    (read-content node filter)
+    node)
+
+  (:method ((node sgml-node) (filter function))
+    (if (funcall filter node)
+	(call-next-method)
+	(skip-node node)))
+
+  (:method ((node element-node) filter)
+    (declare (ignore filter))
+    (read-element-attributes node filter)
+    node)
+
+  (:method ((node leaf-node) (filter function))
+    (aif (funcall filter node)
+	 (call-next-method node self)
+	 (skip-node node)))
+
+  (:method ((node branch-node) filter)
+    (declare (ignore filter))
+    (call-next-method)
+    (read-subelements node)
+    node)
+
+  (:method ((node branch-node) (filter function))
+    (let ((attribute-filter (funcall filter node)))
+      (cond (attribute-filter
+	     (call-next-method node attribute-filter))
+	    (t
+	     (skip-node node)))))
+
+  (:method ((node content-node) filter)
+    (call-next-method)
+    (read-content node filter)
+    node)
+
+  (:method ((node content-node) (filter function))
+    (awhen (funcall filter node)
+      (call-next-method node self))
+    (read-content node filter))
+
+  (:method ((node generic-node) filter)
+    (declare (ignore filter))
+    ;; using throw and catch instead of a more straight forward return to catch
+    ;; the semantic meaning of the return value.
+    (let ((self-closing (catch 'self-closing
+			  (read-element-attributes node filter))))
+      (if self-closing
+	  (change-class node 'generic-leaf-node)
+	  (read-subelements node))
+      node)))
 
 
-(defmethod initialize-instance ((node sgml-node) &key stw-reader)
-  (call-next-method)
-  (when stw-reader
-    (read-content node)
-    (when (eq (stw-read-char) #\>)
-      (next)))
-  node)
+(defgeneric skip-node (node)
+
+  (:method ((node sgml-node))
+    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
+      (consume-until (match-string closing-tag))))
+
+  (:method ((node content-node))
+    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
+      (consume-until (match-string closing-tag))))
+
+  (:method ((node element-node))
+    (consume-until (match-character #\>)))
+
+  (:method ((node branch-node))
+    (push (class->element (class-of node)) *stray-tags*)
+    (call-next-method)))
 
 
-(defmethod initialize-instance ((node element-node) &key stw-reader ignore-attributes)
-  (call-next-method)
-  (when stw-reader
-    (unless ignore-attributes
-      (read-element-attributes node)))
-  node)
 
-
-(defmethod initialize-instance :after ((node branch-node) &key stw-reader)
-  (when stw-reader
-    (unless (char= (stw-peek-last-char) #\/)
-      (read-subelements node)))
-  node)
-
-
-(defmethod initialize-instance :after ((node content-node) &key stw-reader)
-  (when stw-reader
-    (read-content node))
-  node)
-
-
-(defun make-generic-node (name)
-  (let* ((node (make-instance 'generic-node :element-name name :stw-reader nil))
-	 ;; using throw and catch instead of a more straight forward return to catch
-	 ;; the semantic meaning of the return value.
-	 (self-closing (catch 'self-closing
-			 (read-element-attributes node))))
-    (if self-closing
-	(change-class node 'generic-leaf-node)
-	(read-subelements node))
-    node))
-
+;;; reading...
 
 (defgeneric read-element (node)
   (:documentation "READ-ELEMENT is context specific. Whilst similar, XML reads 

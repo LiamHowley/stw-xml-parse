@@ -2,34 +2,22 @@
 
 ;;; error handling mode
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
+(declaim (keyword *mode*)
+	 (inline action-p)
+	 (ftype (function (&optional keyword symbol)
+			  (or symbol null))
+		action-p))
 
-  (declaim (keyword *mode*)
-	   (ftype (function (&optional keyword)
-			    (or symbol null))
-		  action-p))
-
-  (defparameter *mode* :silent 
-    ":verbose -> WARN; :strict -> ERROR; :silent -> do nothing at all.")
-
-  (defun action-p (&optional (action *mode*))
-    (declare (optimize (safety 0) (speed 3)))
-    (case action
-      (:verbose 'warn)
-      (:strict 'error)
-      (t nil))))
+(defparameter *mode* :silent 
+  ":verbose -> WARN; :strict -> ERROR; :silent -> do nothing at all.")
 
 
-(defmacro take-action (condition &body body)
-  "Unless *MODE* is strict, take action specified in body."
-  (let ((action (gensym)))
-    `(lambda (c)
-       (let ((,action (action-p)))
-	 (when (eq ,action 'warn)
-	   (warn (apply #'format nil (simple-condition-format-control ,condition)
-			(simple-condition-format-arguments ,condition))))
-	 (unless (eq ,action 'error)
-	   ,@body)))))
+(defun action-p (&optional (action *mode*) (e 'error))
+  (declare (optimize (safety 0) (speed 3)))
+  (case action
+    (:verbose 'warn)
+    (:strict e)
+    (t nil)))
 
 
 ;;; conditions and restarts
@@ -78,6 +66,7 @@
   "Skip over the tag as if it does not exist. Read child-nodes in.
 When node is a branch node, watch out for any stray tags.")
 
+(define-restart assign-text-node (c))
 
 ;; multiple attribute values are verbotten in XML
 ;; and selectively used in HTML.
@@ -95,3 +84,13 @@ When node is a branch node, watch out for any stray tags.")
 (define-restart use-first-found-value (c))
 
 (define-restart ignore-attribute (c))
+
+
+(define-condition tag-mismatch-error (simple-error)
+  ((tag :initarg :tag :reader tag)))
+
+(defun tag-mismatch-error (expected received) 
+  (error 'tag-mismatch-error
+	 :tag received
+	 :format-control "The tag ~a is not ~a"
+	 :format-arguments (list received expected)))

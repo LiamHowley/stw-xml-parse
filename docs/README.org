@@ -147,7 +147,7 @@ Two conditions are provided:
 
 *** CLASS-NOT-FOUND-ERROR
 
-When there is no class associated with an element the error CLASS-NOT-FOUND-ERROR is invoked. The options then are to enter the debugger or bind the error to the restart ASSIGN-GENERIC-NODE, which as it's name suggests will create a node of type GENERIC-NODE. When *MODE* is :SILENT or :VERBOSE this process is automatically handled, albeit in the latter case with a warning printed to *STANDARD-OUTPUT*.
+When there is no class associated with an element the error CLASS-NOT-FOUND-ERROR is invoked. The options then are to enter the debugger or bind the error to the restart ASSIGN-GENERIC-NODE. When *MODE* is :SILENT or :VERBOSE this process is automatically handled, albeit in the latter case with a warning printed to *STANDARD-OUTPUT*.
 
 *** SLOT-NOT-FOUND-ERROR
 
@@ -159,7 +159,11 @@ XML attributes cannot contain multiple values. When encountered the error MULTIP
 
 *** ASSIGN-GENERIC-NODE
 
-The default handler for a CLASS-NOT-FOUND-ERROR is the restart ASSIGN-GENERIC-NODE. When invoked, parsing continues, but with type GENERIC-NODE.
+When a CLASS-NOT-FOUND-ERROR is invoked, the restart ASSIGN-GENERIC-NODE is made available. When invoked, parsing continues, but with type GENERIC-NODE.
+
+*** ASSIGN-TEXT-NODE
+
+When a CLASS-NOT-FOUND-ERROR is invoked, the restart ASSIGN-TEXT-NODE is made available. When invoked, parsing continues, but with type TEXT-NODE.
 
 *** IGNORE-NODE
 

@@ -247,12 +247,6 @@ interactions can be devised with method specialization.")
   (:documentation "READ-ELEMENT is context specific. Whilst similar, XML reads 
 differently to HTML and wildly so to JSON and other serialization formats.")
 
-  (:method
-      :around (node)
-    (handler-bind ((class-not-found-error
-		     (take-action c (assign-generic-node c))))
-      (call-next-method)))
-
   (:method (node)
     (error "No elements found in global context."))
 
@@ -339,17 +333,16 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; Consume #\< and #\/ characters and compare with opening tag
 	     (next 2)
 	     (let ((closing-tag (read-until (match-character #\< #\>))))
-	       (aif (action-p *mode*)
-		    (let ((opening-tag (or (class->element (class-of node))
-					   (class->element node))))
-		      ;; closing-tag is consumed.
-		      (unless (string= opening-tag closing-tag)
-			(cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
-			       (pop *stray-tags*)
-			       (return))
-			      (t
-			       (funcall self "mismatch between opening tag: ~a and closing tag: ~a."
-					opening-tag closing-tag)))))
+	       (aif (action-p *mode* 'tag-mismatch-error)
+		   (let ((opening-tag (or (class->element (class-of node))
+					  (class->element node))))
+		     ;; closing-tag is consumed.
+		     (if (string-equal opening-tag closing-tag)
+			 (return)
+			 (cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
+				(pop *stray-tags*))
+			       (t
+				(funcall self opening-tag closing-tag)))))
 		    (return))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.

@@ -49,7 +49,8 @@
    :insert-word
    :find-word
    :walk-branch
-   :trie-leaf)
+   :trie-leaf
+   :trie-word)
 
   (:import-from
    :closer-mop
@@ -71,8 +72,9 @@
    ;; specials
    :*opening-char*
    :*preserve-whitespace*
+   :*case-sensitive*
    :*element-class-map*
-   :*element-class-trie*
+   :*embedded*
 
    ;; meta
    :element-class
@@ -163,9 +165,11 @@
    :use-first-found-value
    :ignore-node
    :ignore-attribute
+   :assign-text-node
    :assign-generic-node
    :assign-slot-to-attribute
-   :ignore-missing-slot)
+   :ignore-missing-slot
+   :tag-mismatch-error)
 
   ;; query functions
   (:export

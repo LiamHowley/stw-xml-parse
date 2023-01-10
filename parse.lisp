@@ -152,18 +152,17 @@ interactions can be devised with method specialization.")
 
 (defun parse% (fn node document)
   (let* ((*char-index* 0)
-	 (*document* document)
+	 (*document* (etypecase document
+		       (simple-string document)
+		       (string (copy-seq document))))
 	 (*length* (array-total-size *document*))
 	 (*decoder* (get-decoder *document*))
 	 (*stray-tags*))
     (declare (fixnum *char-index* *length*)
 	     (simple-string *document*))
-    (loop
-      while (and (< *char-index* *length*)
-		 (funcall fn node)))
-    (with-slots (child-nodes) node
-      (setf child-nodes (nreverse child-nodes)))
-    node))
+    (setf (slot-value node 'document) *document*)
+    (funcall fn node))
+  node)
 
 
 (defun read-into-object ()
@@ -317,14 +316,15 @@ differently to HTML and wildly so to JSON and other serialization formats.")
     (read-whitespace node)
     ;; now read
     (let ((char (stw-read-char)))
-      (cond ((eq char *opening-char*)
-	     (next)
-	     (bind-child-node node (read-into-object)))
-	    ((eq :eof char) nil)
-	    (t
-	     (awhen (action-p)
-	       (funcall self "Invalid character at beginning of xml document"))
-	     nil)))))
+      (cond 
+	((eq *opening-char* char)
+	 (read-subelements node))
+	((eq char :eof)
+	 nil)
+	(t
+	 (awhen (action-p)
+	   (funcall self "Invalid character at beginning of xml document"))
+	 nil)))))
 
 
 (defmethod read-element-name ()
@@ -413,14 +413,54 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     (next)
 	     (read-whitespace node)
 	     ;; bind child-nodes at this point.
-	     (bind-child-node node (read-into-object node)))))
+	     (awhen (read-into-object)
+	       (bind-child-node node self)))))
 	 (t 
 	  (or (read-whitespace node)
-	      (read-content node))))))
+	      (read-content node nil))))))
 
 
+(defmethod read-subelements ((node document-node))
+  (declare (inline action-p stw-read-char))
+  (loop
+    for char = (stw-read-char)
+    while char
+    do (case char
+	 (:eof
+	  (return))
+	 (#\> 
+	  (next)
+	  (read-whitespace node)
+	  (case (stw-read-char)
+	    (#\<
+	     nil)
+	    (t 
+	     (read-content node nil))))
+	 (#\<
+	  (case (stw-peek-next-char)
+	    (#\/
+	     ;; Closing tag found. This is an error. There should be no closing
+	     ;; tags at the top level.
+	     ;; Consume #\< and #\/ characters and compare with opening tag
+	     (let ((closing-tag (read-until (match-character #\>))))
+	       (awhen (action-p *mode*)
+		 (funcall self "Closing tag ~a found at top level" closing-tag))))
+	    ((#\< #\space)
+	     ;; Stray tag, render as text and encode when printed.
+	     (bind-child-node node (make-instance 'text-node :text "<"))
+	     (next))
+	    (t
+	     (next)
+	     (read-whitespace node)
+	     ;; bind child-nodes at this point.
+	     (awhen (read-into-object)
+	       (bind-child-node node self)))))
+	 (t 
+	  (or (read-whitespace node)
+	      (read-content node nil))))))
 
-(defmethod read-subelements :around ((node branch-node))
+
+(defmethod read-subelements :around (node)
   (call-next-method)
   (with-slots (child-nodes) node
     (when child-nodes

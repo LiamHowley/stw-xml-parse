@@ -57,7 +57,8 @@ designated by predicate and specialised output on (EQL <type>).")
 	    (#\space
 	     (next)
 	     (push token list))
-	    (t (push token list)
+	    (t (when token
+		 (push token list))
 	     (return)))))
       (nreverse list)))
 

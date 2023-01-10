@@ -720,8 +720,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 (defmethod parse-value (output value)
   value)
 
-(defmethod parse-value ((output (eql 'simple-string)) (value number))
-  (the simple-string (write-to-string value)))
+(defmethod parse-value ((output (eql 'string)) (value number))
+  (the string (write-to-string value)))
 
 (defmethod parse-value (output (value string))
   (the string value))

@@ -329,46 +329,38 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 (defmethod read-element-name ()
   (multiple-value-bind (name char)
-      (read-until (match-character #\> #\space #\/ #\! #\<))
+      (read-until (match-character #\> #\space #\/ #\! #\< #\newline #\linefeed #\return))
     (case char
       (#\!
        (get-element-name))
       (#\<
-       (values nil nil (concatenate 'string "<" name)))
+       (values name nil (concatenate 'string "<" name)))
       (t
-       (when name
-	 (let ((name (string-downcase name)))
-	   (aif (gethash name *element-class-map*)
-		(values self name)
-		(values nil name))))))))
+       (let ((name% (if *case-sensitive* name (string-downcase name))))
+	 (aif (gethash name% *element-class-map*)
+	      (values self name)
+	      (values nil name)))))))
 
-
+ 
+ 
 (defmethod get-element-name ()
   (declare (optimize (safety 0) (speed 3)))
   (let ((result)
-	(foundp (walk-branch *element-class-trie*))
-	(end nil)
-	(depth 0))
-    (declare (function foundp)
-	     (boolean end)
-	     (fixnum depth))
+	(foundp (walk-branch *element-class-trie*)))
+    (declare (function foundp))
     (loop
-      for index of-type fixnum from *char-index* to *length*
+      for index of-type fixnum from *char-index* below *length*
       for char = (the character (aref *document* index))
-      for next = (unless end
-		   (funcall foundp char))
-      when next
-	do (setf result (trie-leaf next))
-      when result
-	do (setf depth index)
-      unless next 
-	do (setf end t) 
-      when end
-	do (cond ((eql depth index)
-		  (setf *char-index* index)
-		  (return result))
-		 (t 
-		  (return (values nil (read-until (match-character #\> #\space #\/ #\!)))))))))
+      for next = (funcall foundp char)
+      when (and next (trie-leaf next))
+	do (setf result next)
+      while next
+      finally (cond (result
+		     (let ((word (the string (trie-word result))))
+		       (next (length word))
+		       (return (values (trie-leaf result) word))))
+		    (t 
+		     (return (values nil (read-until (match-character #\> #\space #\/ #\!)))))))))
 
 
 (defmethod read-subelements ((node branch-node))

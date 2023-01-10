@@ -583,24 +583,13 @@ differently to HTML and wildly so to JSON and other serialization formats.")
        (read-attribute-value slot attribute slot-type))
       ((#\" #\')
        (next)
-       (multiple-value-bind (value char%)
-	   (read-and-decode (attribute-value-reader char))
-	 (cond ((char= char% char)
-		value)
-	       ((char= char% #\space)
-		(restart-case (multiple-value-error attribute value)
-		  (use-first-found-value (c)
-		    :report "Use first found value and skip the rest"
-		    (declare (ignore c))
-		    (consume-until (match-character char))
-		    value)
-		  (ignore-attribute (c)
-		    :report "Ignore all values."
-		    (declare (ignore c))
-		    (consume-until (match-character char))
-		    nil))))))
+       (read-and-decode (match-character char)))
+      ((#\space #\> #\newline #\return #\linefeed)
+       t)
       (t
        (error "xml attributes missing quotes")))))
+
+
 
 
 (defmethod assign-value

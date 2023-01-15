@@ -39,7 +39,7 @@
    (attribute :initarg :attribute :reader attribute)))
 
 (defun slot-not-found-error (format-control &rest format-args)
-  (cerror "Slot not found."
+  (cerror "Ignore error and continue."
 	  'slot-not-found-error
 	  :format-control format-control
 	  :format-arguments format-args))

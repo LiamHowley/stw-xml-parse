@@ -236,17 +236,17 @@ interactions can be devised with method specialization.")
   (:method ((node sgml-node) (filter function))
     (if (funcall filter node)
 	(call-next-method)
-	(skip-node node)))
+	(let ((closing-tag (slot-value (class-of node) 'closing-tag)))
+	  (skip-node node (match-string closing-tag)))))
 
   (:method ((node element-node) filter)
-    (declare (ignore filter))
     (read-element-attributes node filter)
     node)
 
   (:method ((node leaf-node) (filter function))
     (aif (funcall filter node)
 	 (call-next-method node self)
-	 (skip-node node)))
+	 (skip-node node (match-character #\= #\' #\" #\space #\>))))
 
   (:method ((node branch-node) filter)
     (declare (ignore filter))
@@ -259,7 +259,7 @@ interactions can be devised with method specialization.")
       (cond (attribute-filter
 	     (call-next-method node attribute-filter))
 	    (t
-	     (skip-node node)))))
+	     (skip-node node (match-character #\= #\' #\" #\space #\>))))))
 
   (:method ((node content-node) filter)
     (call-next-method)
@@ -272,7 +272,6 @@ interactions can be devised with method specialization.")
     (read-content node filter))
 
   (:method ((node generic-node) filter)
-    (declare (ignore filter))
     ;; using throw and catch instead of a more straight forward return to catch
     ;; the semantic meaning of the return value.
     (let ((self-closing (catch 'self-closing
@@ -280,25 +279,47 @@ interactions can be devised with method specialization.")
       (if self-closing
 	  (change-class node 'generic-leaf-node)
 	  (read-subelements node))
-      node)))
+      node))
+
+  (:method ((node generic-node) (filter function))
+    (skip-node node (match-character #\' #\" #\= #\space #\>))))
 
 
-(defgeneric skip-node (node)
+(defgeneric skip-node (node predicate)
 
-  (:method ((node sgml-node))
-    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
-      (consume-until (match-string closing-tag))))
+  (:method ((node sgml-node) (predicate function))
+    (consume-until predicate))
 
-  (:method ((node content-node))
-    (let ((closing-tag (slot-value (class-of node) 'closing-tag)))
-      (consume-until (match-string closing-tag))))
+  (:method ((node element-node) (predicate function))
+    (consume-until predicate)
+    (loop
+      (let ((char (stw-read-char)))
+	(ecase char
+	  (:eof
+	   (return))
+	  (#\=
+	   (let ((next-char (stw-peek-next-char)))
+	     (next 2)
+	     (case next-char
+	       ((#\" #\')
+		(consume-until (match-character next-char)))
+	       (t
+		(consume-until (match-character #\space #\>))))))
+	  ((#\' #\")
+	   (next)
+	   (consume-until (match-character #\space #\>)))
+	  (#\space
+	   (next)
+	   (consume-until (match-character #\space #\= #\>)))
+	  (#\>
+	   (return))))))
 
-  (:method ((node element-node))
-    (consume-until (match-character #\>)))
 
-  (:method ((node branch-node))
+  (:method ((node branch-node) (predicate function))
+    (declare (ignore predicate))
     (push (class->element (class-of node)) *stray-tags*)
     (call-next-method)))
+
 
 
 

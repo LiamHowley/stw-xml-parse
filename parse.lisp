@@ -458,8 +458,8 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; tags at the top level.
 	     ;; Consume #\< and #\/ characters and compare with opening tag
 	     (let ((closing-tag (read-until (match-character #\>))))
-	       (awhen (action-p *mode*)
-		 (funcall self "Closing tag ~a found at top level" closing-tag))))
+	       (awhen (action-p *mode* 'cerror)
+		 (funcall self "Closing tag ~a> found at top level" closing-tag))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
 	     (bind-child-node node (make-instance 'text-node :text "<"))

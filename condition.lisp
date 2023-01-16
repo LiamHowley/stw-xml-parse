@@ -94,3 +94,30 @@ When node is a branch node, watch out for any stray tags.")
 	 :tag received
 	 :format-control "The tag ~a is not ~a"
 	 :format-arguments (list received expected)))
+
+
+;; entity/character conditions
+
+(define-condition invalid-xml-character-error (simple-error) ())
+
+(defun invalid-xml-character-error (format-control &rest rest)
+  (error 'invalid-xml-character-error
+	  :format-control format-control
+	  :format-arguments rest))
+
+
+(define-condition restricted-xml-character-warning (simple-warning) ())
+
+(defun restricted-xml-character-warning (format-control &rest rest)
+  (warn 'restricted-xml-character-warning
+	:format-control format-control
+	:format-arguments rest))
+
+
+(define-condition restricted-xml-character-error (simple-warning) ())
+
+(defun restricted-xml-character-error (format-control &rest rest)
+  (cerror "Ignore error and continue"
+	  'restricted-xml-character-error
+	  :format-control format-control
+	  :format-arguments rest))

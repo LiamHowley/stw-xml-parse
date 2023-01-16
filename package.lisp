@@ -163,6 +163,10 @@
    :slot-not-found-error
    :multiple-value-error
    :use-first-found-value
+   :restricted-xml-character-warning
+   :restricted-xml-character-error
+   :invalid-xml-character-error
+   :remove-character
    :ignore-node
    :ignore-attribute
    :assign-text-node

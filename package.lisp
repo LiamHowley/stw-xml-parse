@@ -162,6 +162,7 @@
    :class-not-found-error
    :slot-not-found-error
    :multiple-value-error
+   :stray-closing-tag-error
    :use-first-found-value
    :restricted-xml-character-warning
    :restricted-xml-character-error

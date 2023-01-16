@@ -96,6 +96,20 @@ When node is a branch node, watch out for any stray tags.")
 	 :format-arguments (list received expected)))
 
 
+(define-condition stray-closing-tag-error (simple-error)
+  ((tag :initarg :tag :reader tag))
+  (:documentation "When the function SKIP-NODE is invoked on a BRANCH-NODE, 
+or CONTENT-NODE, a closing element tag is left in the document. When *MODE*
+is :SILENT, this is ignored, but when *MODE* is :STRICT, a STRAY-CLOSING-TAG-ERROR
+is invoked."))
+
+(defun stray-closing-tag-error (tag) 
+  (cerror "Ignore tag and move on"
+	  'stray-closing-tag-error
+	  :tag tag
+	  :format-control "Closing tag ~a found at toplevel."
+	  :format-arguments (list tag)))
+
 ;; entity/character conditions
 
 (define-condition invalid-xml-character-error (simple-error) ())

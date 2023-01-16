@@ -409,16 +409,23 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     (next 2)
 	     (let ((closing-tag (read-until (match-character #\< #\>))))
 	       (aif (action-p *mode* 'tag-mismatch-error)
-		   (let ((opening-tag (or (class->element (class-of node))
-					  (class->element node))))
-		     ;; closing-tag is consumed.
-		     (if (string-equal opening-tag closing-tag)
-			 (return)
-			 (cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
-				(pop *stray-tags*)
-				(funcall self opening-tag closing-tag))
-			       (t
-				(funcall self opening-tag closing-tag)))))
+		    (let ((opening-tag (or (class->element (class-of node))
+					   (class->element node))))
+		      ;; closing-tag is consumed.
+		      (if (string-equal opening-tag closing-tag)
+			  (return)
+			  (cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
+				 (pop *stray-tags*)
+				 (restart-case
+				     (funcall self opening-tag closing-tag)
+				   (ignore-node (c)
+				     :report "Ignore stray tag"
+				     nil)
+				   (assign-text-node (c) 
+				     :report "Use TEXT-NODE"
+				     (bind-child-node node (make-instance 'text-node :text (tag c))))))
+				(t
+				 (funcall self opening-tag closing-tag)))))
 		    (return))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
@@ -457,9 +464,13 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	     ;; Closing tag found. This is an error. There should be no closing
 	     ;; tags at the top level.
 	     ;; Consume #\< and #\/ characters and compare with opening tag
-	     (let ((closing-tag (read-until (match-character #\>))))
-	       (awhen (action-p *mode* 'cerror)
-		 (funcall self "Closing tag ~a> found at top level" closing-tag))))
+	     (let ((closing-tag (concatenate 'string (read-until (match-character #\>)) ">")))
+	       (awhen (action-p *mode* 'stray-closing-tag-error)
+		 (restart-case
+		     (funcall self closing-tag)
+		   (assign-text-node (c) 
+		     :report "Use TEXT-NODE"
+		     (bind-child-node node (make-instance 'text-node :text (tag c))))))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
 	     (bind-child-node node (make-instance 'text-node :text "<"))

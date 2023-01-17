@@ -95,6 +95,10 @@ When node is a branch node, watch out for any stray tags.")
 	 :format-control "The tag ~a is not ~a"
 	 :format-arguments (list received expected)))
 
+(define-restart close-node (c)
+  "Available when tag-mismatch-error is invoked. 
+Regard the incorrect tag as correct and close the node.")
+
 
 (define-condition stray-closing-tag-error (simple-error)
   ((tag :initarg :tag :reader tag))
@@ -135,3 +139,5 @@ is invoked."))
 	  'restricted-xml-character-error
 	  :format-control format-control
 	  :format-arguments rest))
+
+(define-restart remove-character (c))

@@ -169,6 +169,7 @@
    :invalid-xml-character-error
    :remove-character
    :ignore-node
+   :close-node
    :ignore-attribute
    :assign-text-node
    :assign-generic-node

@@ -414,18 +414,23 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		      ;; closing-tag is consumed.
 		      (if (string-equal opening-tag closing-tag)
 			  (return)
-			  (cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
-				 (pop *stray-tags*)
-				 (restart-case
-				     (funcall self opening-tag closing-tag)
-				   (ignore-node (c)
-				     :report "Ignore stray tag"
-				     nil)
-				   (assign-text-node (c) 
-				     :report "Use TEXT-NODE"
-				     (bind-child-node node (make-instance 'text-node :text (tag c))))))
-				(t
-				 (funcall self opening-tag closing-tag)))))
+			  (restart-case
+			      (cond ((and *stray-tags* (string= closing-tag (car *stray-tags*)))
+				     (pop *stray-tags*)
+				     (funcall self opening-tag closing-tag))
+				    (t
+				     (funcall self opening-tag closing-tag)))
+			    (close-node (c)
+			      :report "Regard as the correct closing tag and return."
+			      (declare (ignore c))
+			      (return))
+			    (ignore-node (c)
+			      :report "Ignore stray tag"
+			      (declare (ignore c))
+			      nil)
+			    (assign-text-node (c) 
+			      :report "Use TEXT-NODE"
+			      (bind-child-node node (make-instance 'text-node :text (tag c)))))))
 		    (return))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
@@ -468,6 +473,10 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	       (awhen (action-p *mode* 'stray-closing-tag-error)
 		 (restart-case
 		     (funcall self closing-tag)
+		   (close-node (c)
+		     :report "Ignore and continue."
+		     (declare (ignore c))
+		     nil)
 		   (assign-text-node (c) 
 		     :report "Use TEXT-NODE"
 		     (bind-child-node node (make-instance 'text-node :text (tag c))))))))

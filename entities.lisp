@@ -2307,10 +2307,12 @@
 	       finally (setf depth i)))))
     (declare (fixnum depth))
     (when (> depth index)
-      (awhen (validate-char (parse-integer dec-string))
-	(when (char= (aref seq depth) #\;)
-	  (incf depth))
-	(values (the character self) depth)))))
+      (values 
+       (awhen (validate-char (parse-integer dec-string))
+	 (the character self))
+       (if (char= (aref seq depth) #\;)
+	   (incf depth)
+	   depth)))))
 
 
 (defun read-hex (seq index)
@@ -2328,10 +2330,12 @@
 	       finally (setf depth i)))))
     (declare (fixnum depth))
     (when (> depth index)
-      (awhen (validate-char (parse-integer hex-string :radix 16))
-	(when (char= (aref seq depth) #\;)
-	  (incf depth))
-	(values (the character self) depth)))))
+      (values 
+       (awhen (validate-char (parse-integer hex-string :radix 16))
+	 (the character self))
+       (if (char= (aref seq depth) #\;)
+	   (incf depth)
+	   depth)))))
 
 
 (declaim (ftype (function (fixnum) (or null character)) validate-char))

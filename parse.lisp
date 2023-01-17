@@ -187,7 +187,9 @@ interactions can be devised with method specialization.")
 			(assign-text-node (c)
 			  :report "Use TEXT-NODE"
 			  (declare (ignore c))
-			  (make-instance 'text-node :text (concatenate 'string "<" name)))
+			  (print (stw-read-char))
+			  (make-instance 'text-node
+					 :text (format nil "<~a~@[>~]" name (char= (stw-read-char) #\>))))
 			(ignore-node (c)
 			  :report "Skip opening and closing tags."
 			  (declare (ignore c))

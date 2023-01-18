@@ -24,7 +24,7 @@
 
 (defmacro define-restart (name args &body body)
   (let ((restart (gensym)))
-    `(defun ,name ,args
+    `(defun ,name (c ,@args)
        (let ((,restart (find-restart ',name)))
 	 ,@body
 	 (when ,restart
@@ -46,7 +46,7 @@
 
 (define-restart assign-slot-to-attribute (slot))
 
-(define-restart ignore-missing-slot (c))
+(define-restart ignore-missing-slot ())
 
 
 ;; managing class attribution
@@ -60,13 +60,13 @@
 	  :format-control format-control
 	  :format-arguments (list name)))
 
-(define-restart assign-generic-node (c))
+(define-restart assign-generic-node ())
 
-(define-restart ignore-node (c)
+(define-restart ignore-node ()
   "Skip over the tag as if it does not exist. Read child-nodes in.
 When node is a branch node, watch out for any stray tags.")
 
-(define-restart assign-text-node (c))
+(define-restart assign-text-node ())
 
 ;; multiple attribute values are verbotten in XML
 ;; and selectively used in HTML.
@@ -81,9 +81,9 @@ When node is a branch node, watch out for any stray tags.")
 	  :format-control "Multiple values assigned to attribute ~s"
 	  :format-arguments format-args))
 
-(define-restart use-first-found-value (c))
+(define-restart use-first-found-value ())
 
-(define-restart ignore-attribute (c))
+(define-restart ignore-attribute ())
 
 
 (define-condition tag-mismatch-error (simple-error)
@@ -95,7 +95,7 @@ When node is a branch node, watch out for any stray tags.")
 	 :format-control "The tag ~a is not ~a"
 	 :format-arguments (list received expected)))
 
-(define-restart close-node (c)
+(define-restart close-node ()
   "Available when tag-mismatch-error is invoked. 
 Regard the incorrect tag as correct and close the node.")
 
@@ -140,4 +140,4 @@ is invoked."))
 	  :format-control format-control
 	  :format-arguments rest))
 
-(define-restart remove-character (c))
+(define-restart remove-character ())

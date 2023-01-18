@@ -180,19 +180,15 @@ interactions can be devised with method specialization.")
 		     (class-not-found-error
 		      (restart-case
 			  (class-not-found-error "There is no class matching the element name ~a" name)
-			(assign-generic-node (c)
+			(assign-generic-node ()
 			  :report "Use GENERIC-NODE"
-			  (declare (ignore c))
 			  (make-instance 'generic-node :name name))
-			(assign-text-node (c)
+			(assign-text-node ()
 			  :report "Use TEXT-NODE"
-			  (declare (ignore c))
-			  (print (stw-read-char))
 			  (make-instance 'text-node
 					 :text (format nil "<~a~@[>~]" name (char= (stw-read-char) #\>))))
-			(ignore-node (c)
+			(ignore-node ()
 			  :report "Skip opening and closing tags."
-			  (declare (ignore c))
 			  (let ((*mode* :strict))
 			    (consume-until (match-character #\/ #\>))
 			    (ecase (stw-read-char)
@@ -422,17 +418,15 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 				     (funcall self opening-tag closing-tag))
 				    (t
 				     (funcall self opening-tag closing-tag)))
-			    (close-node (c)
+			    (close-node ()
 			      :report "Regard as the correct closing tag and return."
-			      (declare (ignore c))
 			      (return))
-			    (ignore-node (c)
+			    (ignore-node ()
 			      :report "Ignore stray tag"
-			      (declare (ignore c))
 			      nil)
-			    (assign-text-node (c) 
+			    (assign-text-node () 
 			      :report "Use TEXT-NODE"
-			      (bind-child-node node (make-instance 'text-node :text (tag c)))))))
+			      (bind-child-node node (make-instance 'text-node :text closing-tag))))))
 		    (return))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
@@ -475,13 +469,12 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	       (awhen (action-p *mode* 'stray-closing-tag-error)
 		 (restart-case
 		     (funcall self closing-tag)
-		   (close-node (c)
+		   (close-node ()
 		     :report "Ignore and continue."
-		     (declare (ignore c))
 		     nil)
-		   (assign-text-node (c) 
+		   (assign-text-node () 
 		     :report "Use TEXT-NODE"
-		     (bind-child-node node (make-instance 'text-node :text (tag c))))))))
+		     (bind-child-node node (make-instance 'text-node :text closing-tag)))))))
 	    ((#\< #\space)
 	     ;; Stray tag, render as text and encode when printed.
 	     (bind-child-node node (make-instance 'text-node :text "<"))
@@ -534,14 +527,12 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 		    (multiple-value-error "XML does not support attributes with multiple values." attribute)
 		  (use-value (user-supplied)
 		    user-supplied)
-		  (use-first-found-value (c)
+		  (use-first-found-value ()
 		    :report "Use first found value and skip the rest"
-		    (declare (ignore c))
 		    (consume-until (match-character char))
 		    value)
-		  (ignore-attribute (c)
+		  (ignore-attribute ()
 		    :report "Ignore all values."
-		    (declare (ignore c))
 		    (consume-until (match-character char))
 		    nil))))))
       (t
@@ -553,6 +544,7 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (declare (ignore attribute))
   (when value
     (setf (slot-value class slot-name) value)))
+
 
 (defmethod assign-value ((class element-node) (slot-name (eql 'generic-attribute)) attribute value)
   (push (cons attribute value) (slot-value class 'generic-attribute)))
@@ -595,14 +587,30 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 	       (read-attribute class filter))
 	     (ignore-missing-slot ()
 	       :report "Ignore attribute."
-	       (consume-until (match-character #\space #\>))
-	       nil)))
+	       (skip-attribute-value))))
 	  (:verbose
 	   (warn "Assigning the attribute ~s to the slot generic-attribute. Non standard" attribute))))
       (assign-value class
 		    slot-name
 		    attribute
 		    (read-attribute-value slot attribute slot-type)))))
+
+
+(defun skip-attribute-value ()
+  (loop
+    (ecase (stw-read-char)
+      (:eof
+       (return))
+      (#\=
+       (let ((next-char (stw-peek-next-char)))
+	 (next 2)
+	 (case next-char
+	   ((#\" #\')
+	    (consume-until (match-character next-char)))
+	   (t
+	    (consume-until (match-character #\space #\>))))))
+      ((#\space #\/ #\>)
+       nil))))
 
 
 (defmethod read-element-attributes ((node element-node) filter)

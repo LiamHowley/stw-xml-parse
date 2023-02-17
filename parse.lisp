@@ -755,20 +755,6 @@ differently to HTML and wildly so to JSON and other serialization formats.")
 
 ;;; read attributes values
 
-(declaim (ftype (function (string &optional float) float) float%)
-	 (inline float%))
-
-(defun float% (string &optional prototype)
-  (declare (optimize (speed 3)(safety 0)))
-  (let ((num (read-from-string value)))
-    (the float 
-	 (etypecase num
-	   (float num)
-	   (number (aif prototype
-			(float num self)
-			(float num)))))))
-
-
 (defmethod parse-value (output value)
   value)
 
@@ -788,16 +774,16 @@ differently to HTML and wildly so to JSON and other serialization formats.")
   (the fixnum (parse-integer value :junk-allowed t)))
 
 (defmethod parse-value ((output (eql 'float)) (value string))
-  (float% num))
+  (get-float num))
 
 (defmethod parse-value ((output (eql 'short-float)) (value string))
-  (float% num 0s0))
+  (get-float num 0s0))
 
 (defmethod parse-value ((output (eql 'single-float)) (value string))
-  (float% num 0s0))
+  (get-float num 0s0))
 
 (defmethod parse-value ((output (eql 'double-float)) (value string))
-  (float num 0d0))
+  (get-float num 0d0))
 
 (defmethod parse-value ((output (eql 'symbol)) (value string))
   (the symbol (intern value)))

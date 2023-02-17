@@ -19,7 +19,8 @@
    :concat-string
    :aif
    :awhen
-   :self)
+   :self
+   :get-float)
   
   (:import-from
    :stw.util

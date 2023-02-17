@@ -52,11 +52,11 @@
     (write-string (make-string num :initial-element #\space) stream)))
 
 
-(defun serialize (object &optional (indent *indent*) (stream (make-string-output-stream)))
+(defun serialize (object &key (indent *indent*) (stream (make-string-output-stream)) (serializer #'serialize-object))
   (let ((*encoder* #'(lambda (char)
 		       (cdr (assoc char *special-chars* :test #'char=))))
 	(*indent* indent))
-    (serialize-object object stream)
+    (funcall serializer object stream *indent* t)
     (get-output-stream-string stream)))
 
 
@@ -71,19 +71,12 @@
     do (serialize-object node stream (when indent 0))))
 
 
-(defmethod serialize-object ((node dom-node) (stream stream) &optional indent (include-children *print-childnodes*))
+(defmethod serialize-object ((node generic-node) (stream stream) &optional indent include-children)
   (if include-children
       (loop
 	for child in (slot-value node 'child-nodes)
-	do (serialize-object child stream (when indent (+ 3 indent))))
+	do (serialize-object child stream (when indent (+ 3 indent)) t))
       (write-string " ... " stream)))
-
-
-(defmethod serialize-object ((node generic-node) (stream stream) &optional indent include-children)
-  (declare (ignore include-children))
-  (loop
-    for child in (slot-value node 'child-nodes)
-    do (serialize-object child stream (when indent (+ 3 indent)))))
 
 
 (defmethod serialize-object ((object text-node) (stream stream) &optional indent include-children)
@@ -178,7 +171,11 @@
 (defmethod serialize-object ((object branch-node) (stream stream) &optional indent include-children)
   (declare (ignore indent include-children))
   (write-char #\> stream)
-  (call-next-method))
+  (if include-children
+      (loop
+	for child in (slot-value object 'child-nodes)
+	do (serialize-object child stream (when indent (+ 3 indent)) t))
+      (write-string " ... " stream)))
 
 (defmethod serialize-object :after ((object branch-node) (stream stream) &optional indent include-children)
   (declare (ignore include-children))

@@ -21,7 +21,7 @@
    :awhen
    :self
    :get-float)
-  
+
   (:import-from
    :stw.util
    :*document*
@@ -183,6 +183,7 @@
    :find-ancestor-node
    :clone-node
    :walk-tree
+   :walk-tree-path
    :retrieve-comments
    :retrieve-text-nodes
    :retrieve-text-nodes-from-parents

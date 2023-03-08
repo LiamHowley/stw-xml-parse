@@ -62,6 +62,29 @@ node back in, to create a unique copy of node")
      (walk node nil))))
 
 
+(defun walk-tree-path (node path &key (map #'identity) (test #'eq))
+  "Invokes the WALK-TREE-PATH function from STW-UTILS."
+  (let ((last (car (last path)))
+	(tree (if (typep node 'document-node)
+		  (slot-value node 'child-nodes)
+		  node)))
+    (stw.util:walk-tree-path
+     tree path
+     #'(lambda (path-position inner)
+	 (let ((finalize (funcall (the function test) path-position last)))
+	   (values
+	    finalize
+	    (loop
+	      for node% in inner
+	      if (and finalize 
+		      (typep node% path-position))
+		collect node%
+	      else if (typep node% path-position)
+		     append (slot-value node% 'child-nodes)))))
+     #'identity
+     map)))
+
+
 (defgeneric get-generic-nodes (node)
   (:documentation "Return all generic nodes.")
   (:method (node)
